@@ -1,0 +1,1967 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 27/03/2017 06:47:17
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      : MASS EFFECT GAME
+00000000                             3  * Written by :SEAN NASH DE ANDRADE - C00217019
+00000000                             4  * Description:TEXT BASED CYOA GAME
+00000000                             5  *-----------------------------------------------------------
+00001000                             6      ORG    $1000
+00001000                             7      
+00001000  =00000000                  8  exit        EQU 0      used to exit assembly program
+00001000  =00000064                  9  min_fuel    EQU 100    min fuel requirement
+00001000                            10     
+00001000                            11      
+00001000                            12  START:                  ; NOTE TO PHIL - I tried my best, honestly the hardest part was thinking up what to write note the code. Please take into account that I am not in a writing course, the crappy writing is a result of that
+00001000                            13  
+00001000                            14      ;STAT ALLOCATION TO KEEP THINGS STRAIGHT
+00001000  23FC 0000000A 00005470    15      move.l  #10, WILL_VALUE         ;Will Stat
+0000100A  23FC 0000000A 00005474    16      move.l  #10, FORTITUDE_VALUE    ;Fortitude Stat
+00001014  23FC 0000000A 00005478    17      move.l  #10, REFLEX_VALUE       ;Reflexes Stat
+0000101E  23FC 0000000A 0000547C    18      move.l  #10, INTUITION_VALUE    ;Inuition Stat
+00001028                            19      
+00001028  23FC 00000064 0000546C    20      MOVE.L  #100, HEALTH_VALUE 
+00001032  23FC 00000064 00005488    21      MOVE.L  #100, FUEL_VALUE_MAX
+0000103C  23FC 00000032 0000548C    22      MOVE.L  #50, FUEL_VALUE_CURRENT
+00001046  23FC 00000001 00005490    23      MOVE.L  #1, LOCATION_VALUE
+00001050  23FC 00000000 000054B4    24      move.l  #0,COMPANION_A 
+0000105A  23FC 00000000 000054B8    25      move.l  #0,MISSION_TRACKER
+00001064  23FC 00000000 00005498    26      move.l  #0,EXPENSE_VALUE
+0000106E  23FC 00000000 000054C8    27      move.l  #0,MISSION_VALUE
+00001078  23FC 00000000 000054D4    28      move.l  #0,CREWBONUS_DAMAGE
+00001082  23FC 00000000 000054D8    29      move.l  #0,WEAPONBONUS_DAMAGE
+0000108C  23FC 00000000 000054DC    30      move.l  #0,TOTAL_DAMAGE ;Initialise all the values so they are not filled with garbage later
+00001096                            31  
+00001096  6000 0AEA                 32      bra setUpScreen ;Branches to the class Selection 
+0000109A                            33  
+0000109A                            34  
+0000109A                            35  
+0000109A                            36  
+0000109A                            37  
+0000109A                            38  EXITBRANCH:
+0000109A  FFFF FFFF                 39      SIMHALT             ; halt simulator
+0000109E                            40  
+0000109E                            41  
+0000109E                            42  *-------------------------------------------------------
+0000109E                            43  *-------------------      Intros      ------------------
+0000109E                            44  *-------------------------------------------------------
+0000109E                            45  
+0000109E                            46  introGeneral: ;Introduces the setting
+0000109E  43F9 00001E51             47      lea introGeneral_msg,A1 ;Assigns the general intro to be trapped out output
+000010A4  103C 000E                 48      move.b  #14,D0
+000010A8  4E4F                      49      trap    #15
+000010AA  43F9 000052F4             50      lea pressKContinue_msg,A1 ;Assigns the general intro to be trapped out output
+000010B0  103C 000E                 51      move.b  #14,D0
+000010B4  4E4F                      52      trap    #15
+000010B6  103C 0004                 53      move.b  #4,D0
+000010BA  4E4F                      54      trap    #15
+000010BC  6100 0BB6                 55      bsr     clear_screen
+000010C0  6100 0BBE                 56      bsr     endl
+000010C4  43F9 000020F0             57      lea shipIntroGeneral_msg,A1 ;introduces the ship
+000010CA  103C 000E                 58      move.b  #14,D0
+000010CE  4E4F                      59      trap    #15
+000010D0  103C 0004                 60      move.b  #4,D0
+000010D4  4E4F                      61      trap    #15
+000010D6  6000 0002                 62      bra     ShipHub ;Branches to main ship loop
+000010DA                            63      
+000010DA                            64  *-------------------------------------------------------
+000010DA                            65  *-------------------      Ship Hub    ------------------
+000010DA                            66  *-------------------------------------------------------
+000010DA                            67      
+000010DA                            68  ShipHub:
+000010DA  6100 0B98                 69      bsr     clear_screen ;clears screen
+000010DE  43F9 000021A8             70      lea     shipHub_msg,A1 assigns message to A1 to be trapped and so forth 
+000010E4  103C 000E                 71      move.b  #14,D0          move 14 to DO
+000010E8  4E4F                      72      trap    #15
+000010EA  2239 000054AC             73      move.l  KAYLE,D1 ;Checks which crew mates are active
+000010F0  B27C 0001                 74      cmp     #1,D1
+000010F4  6700 0006                 75      beq     kayleIdle
+000010F8  6600 0012                 76      bne     emptyShip
+000010FC                            77      
+000010FC                            78  kayleIdle:
+000010FC  43F9 0000227D             79      lea     kayleIdleHub_msg,A1 ;Flavour text
+00001102  103C 000E                 80      move.b  #14,D0
+00001106  4E4F                      81      trap    #15
+00001108  6000 0012                 82      bra     selectActionShipHub ;Where the player selects what they want to do
+0000110C                            83      
+0000110C                            84  emptyShip: ;If the player class has no crew mates
+0000110C  43F9 00002239             85      lea shipHubNoC_Selection_msg,A1
+00001112  103C 000E                 86      move.b  #14,D0
+00001116  4E4F                      87      trap    #15
+00001118  6000 0002                 88      bra     selectActionShipHub
+0000111C                            89  
+0000111C                            90  selectActionShipHub:
+0000111C  6100 0B62                 91      bsr endl
+00001120  43F9 000022C7             92      lea shipHub_BASE_OPTIONS_msg,A1 ;Lists the options available
+00001126  103C 000E                 93      move.b  #14,D0
+0000112A  4E4F                      94      trap    #15
+0000112C                            95      
+0000112C  103C 0004                 96      move.b  #4,D0          ;Get Input command
+00001130  4E4F                      97      trap    #15
+00001132                            98  
+00001132  B27C 0001                 99      cmp     #1,D1              
+00001136  6700 0020                100      beq     talkToCrew             if SR Z register contains 1 beq => Branch Equal
+0000113A                           101      
+0000113A  B27C 0002                102      cmp     #2,D1              
+0000113E  6700 0122                103      beq     shopMenu            
+00001142                           104      
+00001142  B27C 0003                105      cmp     #3,D1              
+00001146  6700 03A2                106      beq     missionSelect             
+0000114A                           107  
+0000114A  B27C 0004                108      cmp     #4,D1              
+0000114E  6700 022A                109      beq     captainRoom             ;Each option will branch to its specific section 
+00001152                           110      
+00001152  6100 0B20                111      bsr clear_screen    ;if nothing valid is picked the screen clear and rebranching to itself essentially loops it
+00001156  6082                     112      bra     ShipHub
+00001158                           113      
+00001158                           114  *-------------------------------------------------------
+00001158                           115  *-------------------      Crew Talk    -----------------
+00001158                           116  *-------------------------------------------------------    
+00001158                           117      
+00001158                           118  
+00001158                           119  
+00001158                           120  talkToCrew:
+00001158  6100 0002                121      bsr     crewList ;I made most of this game with open code with the idea that if i wanted to add something like a new crew mate it would be easier and simple
+0000115C                           122      
+0000115C                           123  * First subroutine        
+0000115C                           124  crewList
+0000115C  43F9 00005315            125      lea exit0_msg,A1 ;generic press 0 to exit
+00001162  103C 000E                126      move.b  #14,D0
+00001166  4E4F                     127      trap    #15
+00001168  2239 000054AC            128      move.l  KAYLE,D1
+0000116E                           129      if D1 <eq> #1 then.s
+00001174  6100 002E                130          bsr     kaylePresent      ;branch to subroutine second
+00001178                           131      endi
+00001178  2239 000054A8            132      move.l  NOBODY,D1
+0000117E                           133       if D1 <eq> #1 then.s
+00001184  6100 002C                134          bsr     nobodyPresent      ;branch to subroutine second
+00001188                           135      endi
+00001188                           136      
+00001188  103C 0004                137      move.b  #4,D0          ;Get Input command
+0000118C  4E4F                     138      trap    #15
+0000118E                           139      
+0000118E  B27C 0000                140      cmp     #0,D1              
+00001192  6700 FF46                141      beq     ShipHub 
+00001196                           142      
+00001196  B27C 0001                143      cmp     #1,D1              
+0000119A  6700 0024                144      beq     talkToKayle
+0000119E                           145      
+0000119E  6100 0AD4                146      bsr clear_screen
+000011A2  60B8                     147      bra crewList ;return to script (go back to start)
+000011A4                           148  
+000011A4                           149  * Second subroutine
+000011A4                           150  kaylePresent
+000011A4                           151      
+000011A4  43F9 00002357            152      lea talkToCrewKayle_msg,A1     
+000011AA  103C 000E                153      move.b  #14,D0
+000011AE  4E4F                     154      trap    #15
+000011B0  4E75                     155      rts
+000011B2                           156      
+000011B2                           157  nobodyPresent
+000011B2                           158      
+000011B2  43F9 00002385            159      lea talkToCrewNobody_msg,A1     ;These list the people available to talk to
+000011B8  103C 000E                160      move.b  #14,D0
+000011BC  4E4F                     161      trap    #15
+000011BE  4E75                     162      rts
+000011C0                           163      
+000011C0                           164      
+000011C0                           165  talkToKayle:
+000011C0                           166  
+000011C0  2239 000054AC            167      move.l KAYLE,D1  ;if kayle isnt present this returns this back to where it should be
+000011C6  B27C 0000                168      cmp #0,D1
+000011CA  6790                     169      BEQ crewList
+000011CC                           170      
+000011CC  43F9 000023B3            171      lea talkToKayle_msg,A1
+000011D2  103C 000E                172      move.b  #14,D0
+000011D6  4E4F                     173      trap    #15
+000011D8                           174      
+000011D8  43F9 00002473            175      lea talkToKayleOptionsBase_msg,A1
+000011DE  103C 000E                176      move.b  #14,D0
+000011E2  4E4F                     177      trap    #15
+000011E4                           178      
+000011E4  103C 0004                179      move.b  #4,D0          ;Get Input command
+000011E8  4E4F                     180      trap    #15
+000011EA                           181      
+000011EA  B27C 0000                182      cmp     #0,D1              
+000011EE  6700 FF6C                183      beq     crewList 
+000011F2                           184      
+000011F2                           185      if D1 <eq> #1 then.s
+000011F8  6100 001C                186          bsr     kayleShipStatus      
+000011FC                           187      endi
+000011FC                           188      if D1 <eq> #2 then.s
+00001202  6100 002A                189          bsr     kayleHelp      
+00001206                           190      endi
+00001206                           191      if D1 <eq> #3 then.s
+0000120C  6100 003A                192          bsr     kayleCoffee    ;These branch to a subroutine if the input command is correct 
+00001210                           193      endi
+00001210                           194      
+00001210  6100 0A62                195      bsr clear_screen
+00001214  60AA                     196      bra talkToKayle
+00001216                           197      
+00001216                           198  kayleShipStatus:
+00001216  43F9 000024F2            199          lea talkToKayleShipStatus_msg,A1
+0000121C  103C 000E                200          move.b  #14,D0
+00001220  4E4F                     201          trap    #15    
+00001222  103C 0004                202          move.b  #4,D0          ;Get Input command
+00001226  4E4F                     203          trap    #15
+00001228  6100 0A4A                204          bsr clear_screen
+0000122C  6092                     205          bra talkToKayle
+0000122E                           206          
+0000122E                           207  kayleHelp:
+0000122E  43F9 0000263A            208          lea talkToKayleHelp_msg,A1
+00001234  103C 000E                209          move.b  #14,D0
+00001238  4E4F                     210          trap    #15    
+0000123A  103C 0004                211          move.b  #4,D0          ;Get Input command
+0000123E  4E4F                     212          trap    #15
+00001240  6100 0A32                213          bsr clear_screen
+00001244  6000 FF7A                214          bra talkToKayle
+00001248                           215          
+00001248                           216  kayleCoffee:
+00001248  43F9 000027E1            217          lea talkToKayleCoffe_msg,A1
+0000124E  103C 000E                218          move.b  #14,D0
+00001252  4E4F                     219          trap    #15    
+00001254  103C 0004                220          move.b  #4,D0          ;Get Input command
+00001258  4E4F                     221          trap    #15
+0000125A  6100 0A18                222          bsr clear_screen
+0000125E  6000 FF60                223          bra talkToKayle  ;Various Dialogue options are selected by the player
+00001262                           224  
+00001262                           225  *-------------------------------------------------------
+00001262                           226  *-------------------      Shop        ------------------
+00001262                           227  *-------------------------------------------------------    
+00001262                           228  shopMenu:
+00001262  43F9 00002913            229      lea     shopMenuBaseMenu_msg,A1
+00001268  103C 000E                230      move.b  #14,D0
+0000126C  4E4F                     231      trap    #15
+0000126E  2239 00005480            232      move.l CREDIT_VALUE, D1  
+00001274  103C 0003                233      MOVE.B  #3, D0
+00001278  4E4F                     234      TRAP    #15
+0000127A  6100 0A04                235      bsr endl
+0000127E                           236      
+0000127E  103C 0004                237      move.b  #4,D0          ;Get Input command
+00001282  4E4F                     238      trap    #15
+00001284                           239        
+00001284  B27C 0000                240      cmp     #0,D1              
+00001288  6700 FE50                241      beq     ShipHub ;Exit to ship loop
+0000128C                           242  
+0000128C  B27C 0001                243      cmp     #1,D1              
+00001290  6700 0008                244      beq     browseItems ;See items available for the current fame level
+00001294                           245  
+00001294  6100 09DE                246      bsr clear_screen
+00001298  60C8                     247      bra shopMenu  
+0000129A                           248      
+0000129A                           249  browseItems:
+0000129A                           250  
+0000129A  2239 00005484            251      move.l  RENOWN_VALUE,D1
+000012A0                           252    if D1 <eq> #0 then.s
+000012A6  6000 0008                253          bra     browseRenownZero  ;branch to subroutine second
+000012AA                           254      endi
+000012AA                           255  
+000012AA  6100 09C8                256      bsr clear_screen
+000012AE  60B2                     257      bra shopMenu
+000012B0                           258  
+000012B0                           259  browseRenownZero: 
+000012B0                           260  
+000012B0  43F9 0000532C            261      lea     displayCredits_msg,A1
+000012B6  103C 000E                262      move.b  #14,D0
+000012BA  4E4F                     263      trap    #15
+000012BC                           264      
+000012BC  2239 00005480            265      move.l CREDIT_VALUE, D1  ;Displays the Credits owned
+000012C2  103C 0003                266      MOVE.B  #3, D0
+000012C6  4E4F                     267      TRAP    #15
+000012C8                           268  
+000012C8  43F9 000029F5            269      lea     itemRenownZero_msg,A1
+000012CE  103C 000E                270      move.b  #14,D0
+000012D2  4E4F                     271      trap    #15 
+000012D4                           272   
+000012D4  103C 0004                273      move.b  #4,D0          ;Get Input command
+000012D8  4E4F                     274      trap    #15
+000012DA                           275                
+000012DA                           276      if D1 <eq> #0 then.s
+000012E0  6080                     277          bra     shopMenu ;branch to subroutine second
+000012E2                           278      endi
+000012E2                           279      if D1 <eq> #1 then.s
+000012E8  6000 0008                280      bra pistolPresent
+000012EC                           281      endi
+000012EC  6100 0986                282            bsr clear_screen
+000012F0  60A8                     283            bra browseItems
+000012F2                           284  
+000012F2                           285  pistolPresent:        
+000012F2  2239 000054A0            286           move.l  PISTOL_PRESENT,D1 ;Only one of each weapon may be had this function checks if there is one present, if there is it stops it, otherwise it goes ahead.
+000012F8  B2BC 00000000            287           cmp.l    #0,D1
+000012FE  6700 001A                288           beq    purchasePistol
+00001302                           289           
+00001302  43F9 00002AAC            290           lea     ownedWeapon_msg,A1
+00001308  103C 000E                291           move.b  #14,D0
+0000130C  4E4F                     292           trap    #15 
+0000130E                           293            
+0000130E  103C 0004                294           move.b  #4,D0          ;Get Input command
+00001312  4E4F                     295           trap    #15
+00001314                           296           
+00001314  6100 095E                297           bsr clear_screen
+00001318  6080                     298           bra    browseItems    
+0000131A                           299  
+0000131A                           300  purchasePistol: ;Code that checks to see if the player has enough credits
+0000131A                           301  
+0000131A  2239 00005480            302         move.l CREDIT_VALUE,D1
+00001320  0481 000003E8            303         sub.l #1000,D1
+00001326  B2BC 00000000            304         cmp.l #0,D1
+0000132C  6E00 001C                305         bgt cashDecreasePistol
+00001330                           306           
+00001330  43F9 00005339            307          lea notEnoughCash_msg,A1
+00001336  103C 000E                308          move.b  #14,D0
+0000133A  4E4F                     309          trap    #15 
+0000133C                           310          
+0000133C  103C 0004                311          move.b  #4,D0          ;Get Input command
+00001340  4E4F                     312          trap    #15
+00001342                           313           
+00001342  6100 0930                314          bsr clear_screen
+00001346  6000 FF52                315          bra browseItems
+0000134A                           316         
+0000134A                           317         
+0000134A                           318  cashDecreasePistol: ;part of the code that decreases credits from purchasing the pistol
+0000134A                           319  
+0000134A  223C 000003E8            320      move.l #1000,D1
+00001350  93B9 00005480            321      SUB.l D1,CREDIT_VALUE
+00001356  23FC 00000001 000054A0   322      move.l #1,PISTOL_PRESENT
+00001360                           323  
+00001360  43F9 00005386            324      lea packAway_msg,A1
+00001366  103C 000E                325      move.b  #14,D0
+0000136A  4E4F                     326      trap    #15  
+0000136C                           327       
+0000136C  103C 0004                328       move.b  #4,D0          ;Get Input command
+00001370  4E4F                     329       trap    #15
+00001372                           330       
+00001372  6100 0900                331      bsr clear_screen
+00001376  6000 FF22                332      bra browseItems
+0000137A                           333      
+0000137A                           334      
+0000137A                           335      
+0000137A                           336      
+0000137A                           337  *-------------------------------------------------------
+0000137A                           338  *-------------      Captains Quarters    --------------- 
+0000137A                           339  *-------------------------------------------------------
+0000137A                           340  
+0000137A                           341  captainRoom:
+0000137A  43F9 00002B22            342      lea     captainRoomIntro_msg,A1 ;This place is just to review the character and later to retire it
+00001380  103C 000E                343      move.b  #14,D0
+00001384  4E4F                     344      trap    #15  
+00001386                           345      
+00001386  6100 0068                346      bsr displayStats
+0000138A                           347      
+0000138A  43F9 00005315            348      lea     exit0_msg,A1
+00001390  103C 000E                349      move.b  #14,D0
+00001394  4E4F                     350      trap    #15
+00001396                           351      
+00001396  2239 00005484            352      move.l RENOWN_VALUE,D1
+0000139C                           353      if D1 <eq> #2 then.s
+000013A2  6100 001A                354      bsr retirementMessage ;Ends the game later
+000013A6                           355      endi 
+000013A6                           356  
+000013A6  103C 0004                357       move.b  #4,D0          ;Get Input command
+000013AA  4E4F                     358       trap    #15 
+000013AC                           359      
+000013AC  B27C 0000                360      cmp     #0,D1             
+000013B0  6700 FD28                361      beq     ShipHub
+000013B4                           362      
+000013B4  B27C 0001                363      cmp     #1,D1             
+000013B8  6700 0012                364      beq     retirement
+000013BC                           365      
+000013BC  60BC                     366      bra captainRoom
+000013BE                           367  
+000013BE                           368  retirementMessage: ;displays the option if the condition renown level is adequate
+000013BE                           369  
+000013BE  43F9 00005237            370      lea retirementMessage_msg,A1
+000013C4  103C 000E                371      move.b  #14,D0
+000013C8  4E4F                     372      trap    #15
+000013CA  4E75                     373      rts
+000013CC                           374  
+000013CC                           375  retirement:
+000013CC                           376  
+000013CC  2239 00005484            377      move.l RENOWN_VALUE,D1 ;this stops random buttons from using this code until the condtitions are met
+000013D2                           378      if D1 <lt> #2 then.s
+000013D8  60A0                     379      bra captainRoom 
+000013DA                           380      endi
+000013DA                           381      
+000013DA  43F9 00005289            382      lea retirement_msg,A1
+000013E0  103C 000E                383      move.b  #14,D0
+000013E4  4E4F                     384      trap    #15
+000013E6                           385       
+000013E6  103C 0004                386      move.b  #4,D0          ;Get Input command
+000013EA  4E4F                     387       trap    #15
+000013EC                           388       
+000013EC  6000 FCAC                389       bra    exitBranch
+000013F0                           390      
+000013F0                           391  displayStats:  ;Code that displays all stats as a group in a line breaked section
+000013F0  43F9 000053D4            392      lea     lineBreak_msg,A1
+000013F6  103C 000E                393      move.b  #14,D0
+000013FA  4E4F                     394      trap    #15 
+000013FC                           395      
+000013FC  43F9 00005418            396      lea     displayWill_msg,A1
+00001402  103C 000E                397      move.b  #14,D0
+00001406  4E4F                     398      trap    #15  
+00001408                           399      
+00001408  2239 00005470            400      move.l Will_VALUE, D1  
+0000140E  103C 0003                401      MOVE.B  #3, D0
+00001412  4E4F                     402      TRAP    #15  
+00001414                           403  
+00001414  43F9 00005422            404      lea     displayFortitude_msg,A1
+0000141A  103C 000E                405      move.b  #14,D0
+0000141E  4E4F                     406      trap    #15  
+00001420                           407      
+00001420  2239 00005474            408      move.l FORTITUDE_VALUE, D1  
+00001426  103C 0003                409      MOVE.B  #3, D0
+0000142A  4E4F                     410      TRAP    #15 
+0000142C                           411  
+0000142C  43F9 00005431            412      lea     displayReflex_msg,A1
+00001432  103C 000E                413      move.b  #14,D0
+00001436  4E4F                     414      trap    #15  
+00001438                           415      
+00001438  2239 00005478            416      move.l REFLEX_VALUE, D1  
+0000143E  103C 0003                417      MOVE.B  #3, D0
+00001442  4E4F                     418      TRAP    #15 
+00001444                           419  
+00001444  43F9 0000543D            420      lea     displayIntuition_msg,A1
+0000144A  103C 000E                421      move.b  #14,D0
+0000144E  4E4F                     422      trap    #15  
+00001450                           423      
+00001450  2239 0000547C            424      move.l INTUITION_VALUE, D1  
+00001456  103C 0003                425      MOVE.B  #3, D0
+0000145A  4E4F                     426      TRAP    #15   
+0000145C                           427      
+0000145C  43F9 0000532C            428      lea     displayCredits_msg,A1
+00001462  103C 000E                429      move.b  #14,D0
+00001466  4E4F                     430      trap    #15  
+00001468                           431      
+00001468  2239 00005480            432      move.l CREDIT_VALUE, D1  
+0000146E  103C 0003                433      MOVE.B  #3, D0
+00001472  4E4F                     434      TRAP    #15     
+00001474                           435  
+00001474  43F9 0000544C            436      lea     displayHealth_msg,A1
+0000147A  103C 000E                437      move.b  #14,D0
+0000147E  4E4F                     438      trap    #15  
+00001480                           439      
+00001480  2239 0000546C            440      move.l HEALTH_VALUE, D1  
+00001486  103C 0003                441      MOVE.B  #3, D0
+0000148A  4E4F                     442      TRAP    #15
+0000148C                           443     
+0000148C  6100 07F2                444      bsr     endl
+00001490                           445   
+00001490  43F9 000053D4            446      lea     lineBreak_msg,A1
+00001496  103C 000E                447      move.b  #14,D0
+0000149A  4E4F                     448      trap    #15   
+0000149C                           449       
+0000149C  4E75                     450       rts
+0000149E                           451  
+0000149E                           452  displayFuel: ;Displays fuel
+0000149E                           453  
+0000149E  43F9 00005462            454      lea     displayFuel_msg,A1
+000014A4  103C 000E                455      move.b  #14,D0
+000014A8  4E4F                     456      trap    #15  
+000014AA                           457  
+000014AA  2239 0000548C            458      move.l FUEL_VALUE_CURRENT, D1  
+000014B0  103C 0003                459      MOVE.B  #3, D0
+000014B4  4E4F                     460      TRAP    #15
+000014B6                           461  
+000014B6  43F9 00005416            462      lea     slashBreak_msg,A1
+000014BC  103C 000E                463      move.b  #14,D0
+000014C0  4E4F                     464      trap    #15  
+000014C2                           465      
+000014C2  2239 00005488            466      move.l FUEL_VALUE_MAX, D1  
+000014C8  103C 0003                467      MOVE.B  #3, D0
+000014CC  4E4F                     468      TRAP    #15    
+000014CE                           469  
+000014CE  4E75                     470      rts 
+000014D0                           471  
+000014D0                           472  displayLocation: ;Displays location based on location value
+000014D0                           473  
+000014D0  2239 00005490            474      move.l LOCATION_VALUE,D1
+000014D6                           475      if D1 <eq> #1 then.s
+000014DC  43F9 000053BD            476          lea     planet1_msg,A1
+000014E2  103C 000E                477          move.b  #14,D0
+000014E6  4E4F                     478          trap    #15  ;branch to subroutine second;branch to subroutine second
+000014E8                           479      endi
+000014E8  4E75                     480      rts
+000014EA                           481  
+000014EA                           482  *------------------------------------------------------
+000014EA                           483  *-------------------  Mission Select   ------------------
+000014EA                           484  *------------------------------------------------------- 
+000014EA                           485  
+000014EA                           486  missionSelect:             ;Select if you want to do a mission
+000014EA                           487  
+000014EA  43F9 00002BA7            488      lea     missionConsoleIntro_msg,A1
+000014F0  103C 000E                489      move.b  #14,D0
+000014F4  4E4F                     490      trap    #15 
+000014F6  6100 0788                491      bsr endl
+000014FA  61A2                     492      bsr displayFuel
+000014FC  6100 0782                493      bsr endl
+00001500  61CE                     494      bsr displayLocation
+00001502                           495      
+00001502  2239 00005484            496      move.l RENOWN_VALUE,D1
+00001508                           497      if D1 <eq> #0 then.s
+0000150E  6100 0770                498          bsr endl
+00001512  6100 002A                499          bsr mission1Briefing
+00001516                           500      endi 
+00001516                           501  
+00001516  103C 0004                502       move.b  #4,D0          ;Get Input command
+0000151A  4E4F                     503       trap    #15 
+0000151C                           504       
+0000151C  43F9 00005315            505       lea exit0_msg,A1
+00001522  103C 000E                506       move.b  #14,D0
+00001526  4E4F                     507       trap    #15 
+00001528                           508      
+00001528  B27C 0000                509      cmp     #0,D1             
+0000152C  6700 FBAC                510      beq     ShipHub
+00001530                           511      
+00001530  B27C 0001                512      cmp     #1,D1             
+00001534  6700 0016                513      beq     missionChoice  
+00001538                           514  
+00001538  6100 073A                515      bsr clear_screen
+0000153C  60AC                     516      bra missionSelect  
+0000153E                           517  
+0000153E                           518  
+0000153E                           519  mission1Briefing:
+0000153E  43F9 00002C0E            520          lea     mission1Briefing_msg,A1
+00001544  103C 000E                521          move.b  #14,D0
+00001548  4E4F                     522          trap    #15  ;branch to subroutine second
+0000154A                           523          
+0000154A                           524          
+0000154A  4E75                     525          rts
+0000154C                           526          
+0000154C                           527  missionChoice:
+0000154C  2239 00005484            528      move.l RENOWN_VALUE,D1 ;;Selects a mission to do
+00001552                           529      if D1 <eq> #0 then.s
+00001558  6100 071A                530          bsr clear_screen
+0000155C  43F9 00002D3D            531          lea mission1SetUp_msg,A1
+00001562  103C 000E                532          move.b  #14,D0
+00001566  4E4F                     533          trap    #15  ;branch to subroutine second
+00001568                           534      endi 
+00001568                           535      
+00001568  43F9 00002DE9            536      lea missionChoiceOptions_msg,A1
+0000156E  103C 000E                537      move.b  #14,D0
+00001572  4E4F                     538      trap    #15  ;branch to subroutine second
+00001574                           539      
+00001574  103C 0004                540       move.b  #4,D0          ;Get Input command
+00001578  4E4F                     541       trap    #15 
+0000157A                           542      
+0000157A  B27C 0000                543      cmp     #0,D1             
+0000157E  6700 FF6A                544      beq     missionSelect
+00001582                           545      
+00001582  B27C 0001                546      cmp     #1,D1             
+00001586  6700 0008                547      beq     missionPrep 
+0000158A                           548  
+0000158A  6100 06E8                549      bsr clear_screen
+0000158E  60BC                     550      bra missionChoice
+00001590                           551      
+00001590                           552  missionPrep: ;;Selects the crew mate to bring along
+00001590                           553  
+00001590  43F9 00002DC1            554      lea missionCrewSelect_msg,A1
+00001596  103C 000E                555      move.b  #14,D0
+0000159A  4E4F                     556      trap    #15  ;branch to subroutine second
+0000159C                           557      
+0000159C  2239 000054AC            558          move.l KAYLE,D1
+000015A2                           559    if D1 <eq> #1 then.s
+000015A8  6100 0038                560      bsr kayleSelect
+000015AC                           561      endi     
+000015AC                           562  
+000015AC  2239 000054A8            563          move.l NOBODY,D1
+000015B2                           564    if D1 <eq> #0 then.s
+000015B8  6100 0036                565      bsr nobodySelect
+000015BC                           566      endi     
+000015BC                           567     
+000015BC  103C 0004                568       move.b  #4,D0          ;Only 1 crew mate may be brought along, no crewmates can also be selected
+000015C0  4E4F                     569       trap    #15 
+000015C2                           570       
+000015C2  B27C 0000                571      cmp     #0,D1             
+000015C6  6700 FF22                572      beq     missionSelect
+000015CA                           573      
+000015CA                           574    if D1 <eq> #1 then.s
+000015D0  6000 002C                575      bra kayleSelected
+000015D4                           576      endi
+000015D4                           577      
+000015D4                           578        if D1 <eq> #5 then.s
+000015DA  6000 004A                579      bra nobodySelected
+000015DE                           580      endi
+000015DE                           581          
+000015DE  6000 FAFA                582      bra ShipHub   
+000015E2                           583      
+000015E2                           584  kayleSelect:
+000015E2  43F9 00002E2A            585      lea     missionKayle_msg,A1
+000015E8  103C 000E                586      move.b  #14,D0
+000015EC  4E4F                     587      trap    #15  ;branch to subroutine second  
+000015EE  4E75                     588      rts
+000015F0                           589  
+000015F0                           590  nobodySelect:
+000015F0  43F9 00002E70            591      lea     missionNobody_msg,A1
+000015F6  103C 000E                592      move.b  #14,D0
+000015FA  4E4F                     593      trap    #15  ;branch to subroutine second  
+000015FC  4E75                     594      rts    
+000015FE                           595      
+000015FE                           596  kayleSelected:
+000015FE  2239 000054AC            597      move.l KAYLE,D1
+00001604                           598      if D1 <eq> #1 then.s
+0000160A  23FC 00000001 000054B4   599      move.l #1,COMPANION_A ;This is the variable that tracks which Companion is with the player
+00001614  23FC 00000004 000054D4   600      move.l #4,CREWBONUS_DAMAGE
+0000161E  6000 0024                601      bra missionGo
+00001622                           602      endi
+00001622  6000 FF6C                603      bra missionPrep
+00001626                           604      
+00001626                           605  nobodySelected:
+00001626  2239 000054A8            606      move.l NOBODY,D1
+0000162C                           607      if D1 <eq> #1 then.s
+00001632  23FC 00000000 000054B4   608      move.l #0,COMPANION_A 
+0000163C  6000 0006                609      bra missionGo
+00001640                           610      endi   
+00001640  6000 FF4E                611      bra missionPrep 
+00001644                           612  
+00001644                           613  
+00001644                           614  missionGo:
+00001644                           615  
+00001644  2239 000054C8            616      move.l MISSION_VALUE,D1
+0000164A  B27C 0000                617      cmp #0,D1
+0000164E  6700 0044                618      beq mission1Intro
+00001652  6000 FA86                619      bra ShipHub   
+00001656                           620  
+00001656                           621  
+00001656                           622  *------------------------------------------------------
+00001656                           623  *-------------------Mission One -----------------------
+00001656                           624  *------------------------------------------------------
+00001656                           625  
+00001656                           626  resetMission1:
+00001656                           627  
+00001656  6100 061C                628      bsr clear_screen
+0000165A  43F9 000050E4            629      lea mission1GameOver_msg,A1
+00001660  103C 000E                630      move.b  #14,D0
+00001664  4E4F                     631      trap    #15  ;branch to subroutine second 
+00001666  103C 0004                632       move.b  #4,D0          ;Get Input command
+0000166A  4E4F                     633       trap    #15
+0000166C                           634       
+0000166C  23FC 00000000 000054A4   635      move.l #0,HE_PRESENT
+00001676  2239 00005498            636      move.l EXPENSE_VALUE,D1
+0000167C  D3B9 00005480            637      add.l  D1,CREDIT_VALUE
+00001682  23FC 00000000 00005498   638      move.l #0,EXPENSE_VALUE
+0000168C  6100 05C0                639      bsr resetHealth
+00001690  6000 0002                640      bra mission1Intro
+00001694                           641  
+00001694                           642  
+00001694                           643  
+00001694                           644  mission1Intro:
+00001694                           645      
+00001694  43F9 00002E94            646      lea mission1Intro_msg,A1 ;introduces the time value
+0000169A  103C 000E                647      move.b  #14,D0
+0000169E  4E4F                     648      trap    #15 
+000016A0                           649  
+000016A0  103C 0004                650       move.b  #4,D0          ;Get Input command
+000016A4  4E4F                     651       trap    #15 
+000016A6                           652  
+000016A6  23FC 00000008 00005494   653       move.l #8,TIME_VALUE  
+000016B0  23FC 00000000 000054BC   654      move.l #0,CLUE_ONE  
+000016BA                           655   
+000016BA  6000 0002                656      bra mission1Hub
+000016BE                           657      
+000016BE                           658  mission1Hub:
+000016BE                           659  
+000016BE  2239 00005494            660       move.l TIME_VALUE,D1
+000016C4  B27C 0000                661       cmp #0,D1
+000016C8  678C                     662       beq resetMission1
+000016CA                           663  
+000016CA  43F9 000030D6            664      lea mission1Hub_msg,A1
+000016D0  103C 000E                665      move.b  #14,D0
+000016D4  4E4F                     666      trap    #15 
+000016D6                           667      
+000016D6  6100 05A8                668      bsr endl
+000016DA                           669      
+000016DA  43F9 00005458            670      lea displayTime_msg,A1
+000016E0  103C 000E                671      move.b  #14,D0
+000016E4  4E4F                     672      trap    #15 
+000016E6                           673  
+000016E6  2239 00005494            674       move.l TIME_VALUE,D1
+000016EC  103C 0003                675       MOVE.B  #3, D0
+000016F0  4E4F                     676       TRAP    #15
+000016F2                           677  
+000016F2  43F9 00003207            678      lea mission1HubOptions_msg,A1
+000016F8  103C 000E                679      move.b  #14,D0
+000016FC  4E4F                     680      trap    #15
+000016FE                           681      
+000016FE  2239 000054BC            682      move.l CLUE_ONE,D1
+00001704                           683      if D1 <eq> #1 then.s
+0000170A  6100 002E                684      bsr mission1BomberHouseOption
+0000170E                           685      endi  
+0000170E                           686  
+0000170E                           687  
+0000170E  103C 0004                688       move.b  #4,D0          ;Get Input command
+00001712  4E4F                     689       trap    #15   
+00001714                           690  
+00001714  B27C 0001                691      cmp     #1,D1             
+00001718  6700 002E                692      beq     mission1Police
+0000171C                           693      
+0000171C  B27C 0002                694      cmp     #2,D1             
+00001720  6700 0054                695      beq     mission1Bar
+00001724                           696      
+00001724  B27C 0003                697      cmp     #3,D1             
+00001728  6700 00EA                698      beq     mission1InfoBroker
+0000172C                           699      
+0000172C  B27C 0004                700      cmp     #4,D1             
+00001730  6700 0170                701      beq     mission1BomberHouse
+00001734                           702  
+00001734  6100 053E                703      bsr clear_screen
+00001738  6084                     704      bra mission1Hub  
+0000173A                           705  
+0000173A                           706  mission1BomberHouseOption:
+0000173A  43F9 00004059            707      lea mission1bomberHouseOption_msg,A1
+00001740  103C 000E                708      move.b  #14,D0
+00001744  4E4F                     709      trap    #15
+00001746  4E75                     710      rts
+00001748                           711      
+00001748                           712  mission1Police:
+00001748                           713          
+00001748  53B9 00005494            714      sub.l #1,TIME_VALUE
+0000174E  43F9 000033E6            715      lea mission1PoliceStationDesc_msg,A1
+00001754  103C 000E                716      move.b  #14,D0
+00001758  4E4F                     717      trap    #15
+0000175A                           718  
+0000175A  103C 0004                719      move.b  #4,D0          ;Get Input command
+0000175E  4E4F                     720      trap    #15 
+00001760                           721  
+00001760  43F9 000034F0            722      lea mission1PoliceStationResult_msg,A1
+00001766  103C 000E                723      move.b  #14,D0
+0000176A  4E4F                     724      trap    #15
+0000176C                           725  
+0000176C  103C 0004                726      move.b  #4,D0          ;Get Input command
+00001770  4E4F                     727      trap    #15 
+00001772  6000 FF4A                728      bra    mission1Hub
+00001776                           729  
+00001776                           730  mission1Bar:
+00001776                           731  
+00001776  43F9 00003634            732      lea mission1BarDesc_msg,A1
+0000177C  103C 000E                733      move.b  #14,D0
+00001780  4E4F                     734      trap    #15
+00001782                           735  
+00001782  103C 0004                736      move.b  #4,D0          ;Get Input command
+00001786  4E4F                     737      trap    #15
+00001788                           738      
+00001788  43F9 00003769            739      lea mission1BarSearch_msg,A1
+0000178E  103C 000E                740      move.b  #14,D0
+00001792  4E4F                     741      trap    #15
+00001794                           742      
+00001794  2239 0000547C            743      move.l INTUITION_VALUE,D1
+0000179A                           744      if D1 <gt> #12 then.s
+000017A0  6100 001E                745      bsr mission1BarSpecialIntuition
+000017A4                           746      endi     
+000017A4                           747  
+000017A4  103C 0004                748      move.b  #4,D0          ;Get Input command
+000017A8  4E4F                     749      trap    #15
+000017AA                           750      
+000017AA  B27C 0001                751      cmp     #1,D1             
+000017AE  6700 001E                752      beq     mission1SearchResult
+000017B2                           753      
+000017B2  B27C 0002                754      cmp     #2,D1             
+000017B6  6700 002C                755      beq     mission1IntuitionResult
+000017BA                           756    
+000017BA                           757    
+000017BA  6100 04B8                758      bsr clear_screen
+000017BE  60B6                     759      bra mission1Bar
+000017C0                           760      
+000017C0                           761  mission1BarSpecialIntuition:
+000017C0  43F9 000037E3            762      lea mission1BarIntuitionOption_msg,A1
+000017C6  103C 000E                763      move.b  #14,D0
+000017CA  4E4F                     764      trap    #15
+000017CC  4E75                     765      rts
+000017CE                           766  
+000017CE                           767  mission1SearchResult:
+000017CE  43F9 00003AA8            768      lea mission1BarSearchResult_msg,A1
+000017D4  103C 000E                769      move.b  #14,D0
+000017D8  4E4F                     770      trap    #15
+000017DA  53B9 00005494            771      sub.l #1,TIME_VALUE
+000017E0  6000 FEDC                772      bra mission1Hub
+000017E4                           773      
+000017E4                           774  mission1IntuitionResult:
+000017E4                           775  
+000017E4  2239 0000547C            776      move.l INTUITION_VALUE,D1
+000017EA                           777      if D1 <gt> #12 then.s
+000017F0  43F9 00003851            778      lea mission1BarIntuitionResult_msg,A1
+000017F6  103C 000E                779      move.b  #14,D0
+000017FA  4E4F                     780      trap    #15
+000017FC  23FC 00000001 000054BC   781      move.l #1,CLUE_ONE
+00001806  53B9 00005494            782      sub.l #1,TIME_VALUE
+0000180C  6000 FEB0                783      bra mission1Hub 
+00001810                           784      endi
+00001810                           785      
+00001810  6000 FF64                786      bra mission1Bar   
+00001814                           787  
+00001814                           788  
+00001814                           789  mission1InfoBroker:
+00001814                           790  
+00001814  43F9 00003BAA            791      lea mission1InfoBrokerDesc_msg,A1
+0000181A  103C 000E                792      move.b  #14,D0
+0000181E  4E4F                     793      trap    #15
+00001820                           794      
+00001820  103C 0004                795      move.b  #4,D0          ;Get Input command
+00001824  4E4F                     796      trap    #15
+00001826                           797      
+00001826  B27C 0002                798      cmp     #2,D1             
+0000182A  6700 0010                799      beq     mission1InfoBrokerNo
+0000182E                           800      
+0000182E  B27C 0001                801      cmp     #1,D1             
+00001832  6700 001E                802      beq     mission1InfoBrokerYes
+00001836                           803      
+00001836  6100 043C                804      bsr clear_screen
+0000183A  60D8                     805      bra mission1InfoBroker
+0000183C                           806      
+0000183C                           807  mission1InfoBrokerNo:
+0000183C                           808  
+0000183C  43F9 00003E92            809      lea mission1InfoBrokerNoResult_msg,A1
+00001842  103C 000E                810      move.b  #14,D0
+00001846  4E4F                     811      trap    #15 
+00001848  53B9 00005494            812      sub.l #1,TIME_VALUE
+0000184E  6000 FE6E                813      bra mission1Hub           
+00001852                           814  
+00001852                           815  mission1InfoBrokerYes:
+00001852  2239 00005480            816      move.l CREDIT_VALUE,D1    
+00001858                           817       if D1 <gt> #500 then.s
+0000185E  43F9 00003F85            818      lea mission1InfoBrokerYesResult_msg,A1
+00001864  103C 000E                819      move.b  #14,D0
+00001868  4E4F                     820      trap    #15 
+0000186A  53B9 00005494            821      sub.l #1,TIME_VALUE
+00001870  04B9 000001F4 00005480   822      sub.l #500,CREDIT_VALUE
+0000187A  06B9 000001F4 00005498   823      add.l #500,EXPENSE_VALUE
+00001884  23FC 00000001 000054BC   824      move.l #1,CLUE_ONE
+0000188E  6000 FE2E                825      bra mission1Hub
+00001892                           826      endi
+00001892  43F9 00005339            827      lea notEnoughCash_msg,A1
+00001898  103C 000E                828      move.b  #14,D0
+0000189C  4E4F                     829      trap    #15
+0000189E  6000 FF74                830      bra mission1InfoBroker
+000018A2                           831  
+000018A2                           832  mission1BomberHouse:
+000018A2  2239 000054BC            833      move.l CLUE_ONE,D1
+000018A8  B27C 0000                834      cmp #0,D1
+000018AC  6700 FE10                835      beq mission1Hub
+000018B0                           836      
+000018B0  2239 00005494            837       move.l TIME_VALUE,D1
+000018B6  B27C 0000                838       cmp #0,D1
+000018BA  6700 FD9A                839       beq resetMission1
+000018BE                           840       
+000018BE  6100 03B4                841       bsr clear_screen
+000018C2                           842      
+000018C2  43F9 000040C6            843      lea mission1BomberHouseDesc_msg,A1
+000018C8  103C 000E                844      move.b  #14,D0
+000018CC  4E4F                     845      trap    #15 
+000018CE  23FC 00000001 000054A4   846      move.l #1,HE_PRESENT
+000018D8                           847      
+000018D8  43F9 00005458            848      lea displayTime_msg,A1
+000018DE  103C 000E                849      move.b  #14,D0
+000018E2  4E4F                     850      trap    #15 
+000018E4                           851  
+000018E4  2239 00005494            852       move.l TIME_VALUE,D1
+000018EA  103C 0003                853       MOVE.B  #3, D0
+000018EE  4E4F                     854       TRAP    #15
+000018F0                           855  
+000018F0  6100 038E                856      bsr endl
+000018F4                           857  
+000018F4  103C 0004                858      move.b  #4,D0          ;Get Input command
+000018F8  4E4F                     859      trap    #15
+000018FA                           860      
+000018FA  B27C 0001                861      cmp     #1,D1             
+000018FE  6700 0018                862      beq     mission1BomberPolice
+00001902                           863      
+00001902  B27C 0003                864      cmp     #3,D1             
+00001906  6700 002C                865      beq     mission1BomberEx   
+0000190A                           866  
+0000190A  B27C 0002                867      cmp     #2,D1             
+0000190E  6700 0040                868      beq     mission1BomberCouncil
+00001912                           869  
+00001912  6100 0360                870      bsr clear_screen
+00001916  608A                     871      bra mission1BomberHouse 
+00001918                           872  
+00001918                           873  mission1BomberPolice:
+00001918                           874  
+00001918  43F9 00004609            875      lea  mission1BomberPolice_msg,A1
+0000191E  103C 000E                876      move.b  #14,D0
+00001922  4E4F                     877      trap    #15
+00001924                           878      
+00001924  103C 0004                879      move.b  #4,D0          ;Get Input command
+00001928  4E4F                     880      trap    #15
+0000192A  53B9 00005494            881      sub.l #1,TIME_VALUE
+00001930  6000 FF70                882      bra mission1BomberHouse 
+00001934                           883     
+00001934                           884  mission1BomberEx:
+00001934                           885  
+00001934  43F9 00004844            886      lea  mission1BomberEx_msg,A1
+0000193A  103C 000E                887      move.b  #14,D0
+0000193E  4E4F                     888      trap    #15
+00001940                           889      
+00001940  103C 0004                890      move.b  #4,D0          ;Get Input command
+00001944  4E4F                     891      trap    #15
+00001946  53B9 00005494            892      sub.l #1,TIME_VALUE    
+0000194C  6000 FF54                893      bra mission1BomberHouse 
+00001950                           894         
+00001950                           895  mission1BomberCouncil:
+00001950                           896  
+00001950  43F9 00004AA6            897      lea  mission1BomberCouncil_msg,A1
+00001956  103C 000E                898      move.b  #14,D0
+0000195A  4E4F                     899      trap    #15
+0000195C                           900      
+0000195C  2239 000054B4            901      move.l COMPANION_A,D1    
+00001962                           902      if D1 <eq> #1 then.s
+00001968  6100 001C                903      bsr mission1BomberKayle
+0000196C                           904      endi
+0000196C                           905      
+0000196C  103C 0004                906      move.b  #4,D0          ;Get Input command
+00001970  4E4F                     907      trap    #15
+00001972                           908  
+00001972  B27C 0001                909      cmp     #1,D1             
+00001976  6700 0040                910      beq     mission1BomberFight
+0000197A                           911                   
+0000197A  B27C 0002                912      cmp     #2,D1             
+0000197E  6700 0014                913       beq     mission1BomberFightKayle
+00001982                           914      
+00001982                           915      
+00001982  6000 FF1E                916      bra mission1BomberHouse
+00001986                           917  mission1BomberKayle:
+00001986  43F9 00004E90            918      lea  mission1BomberKayle_msg,A1
+0000198C  103C 000E                919      move.b  #14,D0
+00001990  4E4F                     920      trap    #15
+00001992  4E75                     921      rts
+00001994                           922      
+00001994                           923  mission1BomberFightKayle:
+00001994                           924  
+00001994  2239 000054B4            925     move.l COMPANION_A,D1    
+0000199A                           926      if D1 <eq> #1 then.s
+000019A0  43F9 00004EE4            927      lea  mission1BomberFightKayle_msg,A1
+000019A6  103C 000E                928      move.b  #14,D0
+000019AA  4E4F                     929      trap    #15
+000019AC                           930   
+000019AC  103C 0004                931      move.b  #4,D0          ;Get Input command
+000019B0  4E4F                     932      trap    #15
+000019B2                           933      
+000019B2  6000 0026                934     bra mission1Conlusion
+000019B6                           935      endi
+000019B6  6098                     936     bra mission1BomberCouncil
+000019B8                           937     
+000019B8                           938     
+000019B8                           939  mission1BomberFight:
+000019B8  23FC 00000005 000054D0   940      move.l  #5,ENEMY_DAMAGE
+000019C2  23FC 00000190 000054CC   941      move.l  #400,ENEMY_HEALTH
+000019CC  23FC 00000001 0000549C   942      move.l  #1,FIGHT_VALUE
+000019D6  6100 0030                943      bsr fightSystem   
+000019DA                           944  
+000019DA                           945  mission1Conlusion:
+000019DA  43F9 00005183            946      lea mission1Conclusion_msg,A1
+000019E0  103C 000E                947      move.b  #14,D0
+000019E4  4E4F                     948      trap    #15
+000019E6                           949      
+000019E6  06B9 000005DC 00005480   950      add.l   #1500,CREDIT_VALUE
+000019F0  6100 025C                951      bsr resetHealth
+000019F4  23FC 00000002 00005484   952      move.l  #2,RENOWN_VALUE
+000019FE                           953      
+000019FE  103C 0004                954      move.b  #4,D0          ;Get Input command
+00001A02  4E4F                     955      trap    #15
+00001A04                           956      
+00001A04  6000 F6D4                957      bra ShipHub
+00001A08                           958  
+00001A08                           959  *------------------------------------------------------
+00001A08                           960  *-------------------  Combat   ------------------ 
+00001A08                           961  *-------------------------------------------------------
+00001A08                           962  fightSystem:    
+00001A08  43F9 0000544C            963      lea     displayHealth_msg,A1
+00001A0E  103C 000E                964      move.b  #14,D0
+00001A12  4E4F                     965      trap    #15  
+00001A14                           966      
+00001A14  2239 0000546C            967      move.l HEALTH_VALUE, D1  
+00001A1A  103C 0003                968      MOVE.B  #3, D0
+00001A1E  4E4F                     969      TRAP    #15
+00001A20                           970      
+00001A20  6100 025E                971     bsr endl
+00001A24                           972   
+00001A24  43F9 0000507B            973      lea combatOptions_msg,A1
+00001A2A  103C 000E                974      move.b  #14,D0
+00001A2E  4E4F                     975      trap    #15   
+00001A30                           976  
+00001A30  103C 0004                977      move.b  #4,D0          ;Get Input command
+00001A34  4E4F                     978      trap    #15
+00001A36                           979      
+00001A36                           980      if D1 <eq> #1 then.s
+00001A3C  6000 0018                981      bra fightSystemAttack
+00001A40                           982      endi
+00001A40                           983      
+00001A40                           984      if D1 <eq> #2 then.s
+00001A46  6000 008C                985      bra fightSystemDefend
+00001A4A                           986      endi
+00001A4A                           987  
+00001A4A                           988      if D1 <eq> #3 then.s
+00001A50  6000 00B6                989      bra fightSystemSpecial
+00001A54                           990      endi
+00001A54                           991      
+00001A54  60B2                     992      bra fightSystem
+00001A56                           993  
+00001A56                           994  fightSystemAttack:
+00001A56  23FC 00000000 000054DC   995      move.l  #0,TOTAL_DAMAGE
+00001A60  2239 000054D4            996      move.l  CREWBONUS_DAMAGE,D1
+00001A66  D3B9 000054DC            997      add.l   D1,TOTAL_DAMAGE
+00001A6C  2239 000054D8            998      move.l  WEAPONBONUS_DAMAGE,D1
+00001A72  D3B9 000054DC            999      add.l   D1,TOTAL_DAMAGE
+00001A78  2239 00005478           1000      move.l  REFLEX_VALUE,D1
+00001A7E  0481 0000000A           1001      sub.l   #10,D1
+00001A84  82FC 0002               1002      divu    #2,D1
+00001A88  D3B9 000054DC           1003      add.l   D1,TOTAL_DAMAGE
+00001A8E  2239 000054DC           1004      move.l  TOTAL_DAMAGE,D1
+00001A94  93B9 000054CC           1005      sub.l   D1,ENEMY_HEALTH
+00001A9A                          1006      
+00001A9A  6000 0002               1007      bra fightSystemEnemyAttack
+00001A9E                          1008  
+00001A9E                          1009  fightSystemEnemyAttack:
+00001A9E  2239 000054CC           1010      move.l ENEMY_HEALTH,D1
+00001AA4  103C 0003               1011      MOVE.B  #3, D0
+00001AA8  4E4F                    1012      TRAP    #15
+00001AAA                          1013      if D1 <lt> #0 then.s
+00001AB0  6100 00AC               1014      bsr fightSystemVictory
+00001AB4                          1015      endi
+00001AB4  2239 000054D0           1016      move.l ENEMY_DAMAGE,D1
+00001ABA  93B9 0000546C           1017      sub.l   D1,HEALTH_VALUE
+00001AC0  2239 0000546C           1018      move.l HEALTH_VALUE,D1
+00001AC6                          1019      if D1 <lt> #0 then.s
+00001ACC  6100 00A2               1020      bsr fightSystemLoss
+00001AD0                          1021      endi
+00001AD0  6000 FF36               1022      bra fightSystem
+00001AD4                          1023      
+00001AD4                          1024  fightSystemDefend:
+00001AD4  06B9 0000000A 0000546C  1025      add.l #10,HEALTH_VALUE
+00001ADE  2239 0000546C           1026      move.l HEALTH_VALUE,D1
+00001AE4  2439 00005474           1027      move.l FORTITUDE_VALUE,D2
+00001AEA  0482 0000000A           1028      sub.l   #10,D2
+00001AF0  84FC 0002               1029      divu    #2,D2
+00001AF4  C4FC 000A               1030      mulu    #10,D2
+00001AF8  0682 00000064           1031      add.l   #100,D2
+00001AFE                          1032      
+00001AFE                          1033      if D1 <gt> D2 then.s
+00001B02  2202                    1034      move.l D2,D1
+00001B04                          1035      endi 
+00001B04  6000 FF02               1036      bra fightSystem 
+00001B08                          1037    
+00001B08                          1038  fightSystemSpecial:
+00001B08  2239 000054A4           1039      move.l HE_PRESENT,D1
+00001B0E                          1040        if D1 <eq> #1 then.s
+00001B14  6100 001E               1041      bsr fightSystemHE_Pres
+00001B18                          1042      endi
+00001B18                          1043      
+00001B18  103C 0004               1044      move.b  #4,D0          ;Get Input command
+00001B1C  4E4F                    1045      trap    #15
+00001B1E                          1046      
+00001B1E  B27C 0000               1047      cmp #0,D1
+00001B22  6700 FEE4               1048      beq fightSystem
+00001B26                          1049      
+00001B26  B27C 0001               1050      cmp #1,D1
+00001B2A  6700 0016               1051      beq fightSystemHE
+00001B2E                          1052      
+00001B2E  6100 0144               1053      bsr clear_screen
+00001B32  60D4                    1054      bra fightSystemSpecial
+00001B34                          1055  
+00001B34                          1056  fightSystemHE_Pres:
+00001B34  43F9 000050CB           1057      lea fightSystemHE_Pres_msg,A1 
+00001B3A  103C 000E               1058      move.b  #14,D0
+00001B3E  4E4F                    1059      trap    #15  
+00001B40  4E75                    1060      rts
+00001B42                          1061  
+00001B42                          1062  fightSystemHE:
+00001B42  2239 000054A4           1063      move.l HE_PRESENT,D1
+00001B48                          1064           if D1 <eq> #1 then.s
+00001B4E  23FC FFFFFFF6 000054CC  1065          move.l #-10,ENEMY_HEALTH
+00001B58  6000 FF44               1066          bra fightSystemEnemyAttack
+00001B5C                          1067      endi
+00001B5C  60AA                    1068      bra fightSystemSpecial
+00001B5E                          1069      
+00001B5E                          1070  fightSystemVictory:
+00001B5E  2239 0000549C           1071      move.l FIGHT_VALUE,D1
+00001B64                          1072          if D1 <eq> #1 then.s
+00001B6A  6000 FE6E               1073          bra mission1Conlusion
+00001B6E                          1074      endi
+00001B6E  4E75                    1075      rts
+00001B70                          1076  
+00001B70                          1077  fightSystemLoss: 
+00001B70  2239 0000549C           1078      move.l FIGHT_VALUE,D1
+00001B76                          1079          if D1 <eq> #1 then.s
+00001B7C  6000 FAD8               1080          bra resetMission1
+00001B80                          1081      endi
+00001B80  4E75                    1082      rts   
+00001B82                          1083  *------------------------------------------------------
+00001B82                          1084  *-------------------Set Up Screen ------------------ (SETS UP CLASS AT START)
+00001B82                          1085  *-------------------------------------------------------
+00001B82                          1086  setUpScreen:
+00001B82                          1087   
+00001B82  43F9 00001C99           1088      lea     classIntro_msg,A1 assigns message to A1 to be trapped and so forth 
+00001B88  103C 000E               1089      move.b  #14,D0          move 14 to DO
+00001B8C  4E4F                    1090      trap    #15             trap and interpret value in D0
+00001B8E  43F9 00001D5D           1091      lea     captain_msg,A1  assign message to address register A1
+00001B94  4E4F                    1092      trap    #15             trap and interpret value in D0
+00001B96  6000 0002               1093      bra classSelection
+00001B9A                          1094  
+00001B9A                          1095  classSelection:
+00001B9A  103C 0004               1096      move.b  #4,D0           ;Get the class selection from the player via them writing the number they want
+00001B9E  4E4F                    1097      trap    #15
+00001BA0                          1098  
+00001BA0  B27C 0001               1099      cmp     #1,D1               ;Checks to see if the number is the captain`s number
+00001BA4  6700 0008               1100      beq     captainSetUp              if SR Z register contains 1 beq => Branch Equal
+00001BA8                          1101      
+00001BA8  6100 00CA               1102      bsr clear_screen
+00001BAC  60D4                    1103      bra     setUpScreen
+00001BAE                          1104      
+00001BAE                          1105  
+00001BAE                          1106  *-------------------------------------------------------
+00001BAE                          1107  *-------------------Class Set Up ------------------ (SETS UP CLASS AT START)
+00001BAE                          1108  *-------------------------------------------------------
+00001BAE                          1109  
+00001BAE                          1110  captainSetUp:
+00001BAE  23FC 0000000E 00005470  1111      move.l  #14,WILL_VALUE   ;Will Stat
+00001BB8  23FC 0000000E 00005474  1112      move.l  #14,FORTITUDE_VALUE   ;Fortitude Stat
+00001BC2  6100 006E               1113      bsr     healthCalculation ;Health Adjustment
+00001BC6  23FC 0000000E 00005478  1114      move.l  #14,REFLEX_VALUE   ;Reflexes Stat
+00001BD0  23FC 00000010 0000547C  1115      move.l  #16,INTUITION_VALUE   ;Inuition Stat
+00001BDA  23FC 00000001 000054AC  1116      move.l  #1,KAYLE
+00001BE4  23FC 00000000 000054A8  1117      move.l  #0,NOBODY
+00001BEE  23FC 00000000 000054A8  1118      move.l  #0,NOBODY
+00001BF8  23FC 000005DC 00005480  1119      move.l  #1500,CREDIT_VALUE
+00001C02  23FC 00000000 00005484  1120      move.l  #0,RENOWN_VALUE
+00001C0C  23FC 00000001 000054A0  1121      move.l  #1,PISTOL_PRESENT
+00001C16  23FC 00000004 000054D8  1122      move.l  #4,WEAPONBONUS_DAMAGE
+00001C20  23FC 00000000 000054A4  1123      move.l  #0,HE_PRESENT
+00001C2A  6100 0048               1124      bsr     clear_screen
+00001C2E  6000 F46E               1125      bra introGeneral
+00001C32                          1126  
+00001C32                          1127  
+00001C32                          1128  *-------------------------------------------------------
+00001C32                          1129  *-------------------Stat Calculations ------------------ 
+00001C32                          1130  *-------------------------------------------------------
+00001C32                          1131  healthCalculation:
+00001C32  2239 00005474           1132      move.l FORTITUDE_VALUE,D1
+00001C38  0481 0000000A           1133      sub.l #10,D1
+00001C3E  82FC 0002               1134      divu #2,D1
+00001C42  C2FC 000A               1135      mulu #10,D1
+00001C46  D3B9 0000546C           1136      add.l D1,HEALTH_VALUE
+00001C4C  4E75                    1137      rts
+00001C4E                          1138      
+00001C4E                          1139  resetHealth:
+00001C4E  23FC 00000064 0000546C  1140      move.l #100,HEALTH_VALUE    
+00001C58  2239 00005474           1141      move.l FORTITUDE_VALUE,D1
+00001C5E  0481 0000000A           1142      sub.l #10,D1
+00001C64  82FC 0002               1143      divu #2,D1
+00001C68  C2FC 000A               1144      mulu #10,D1
+00001C6C  D3B9 0000546C           1145      add.l D1,HEALTH_VALUE
+00001C72  4E75                    1146      rts      
+00001C74                          1147     
+00001C74                          1148  *-------------------------------------------------------
+00001C74                          1149  *-------------------Screen Control Functions ------------------ 
+00001C74                          1150  *-------------------------------------------------------
+00001C74                          1151     
+00001C74                          1152  clear_screen: 
+00001C74  103C 000B               1153      move.b  #11,D0      clear screen
+00001C78  323C FF00               1154      move.w  #$ff00,D1
+00001C7C  4E4F                    1155      trap    #15
+00001C7E  4E75                    1156      rts
+00001C80                          1157     
+00001C80                          1158  endl:                   ;Does the Same thing as in visual studio, skips a line. Use to separate texts.
+00001C80  48E7 8040               1159      movem.l D0/A1,-(A7)
+00001C84  303C 000E               1160      move    #14,D0
+00001C88  43F9 00001C96           1161      lea     crlf,A1
+00001C8E  4E4F                    1162      trap    #15
+00001C90  4CDF 0201               1163      movem.l (A7)+,D0/A1
+00001C94  4E75                    1164      rts
+00001C96                          1165     
+00001C96                          1166  *-------------------------------------------------------
+00001C96                          1167  *-------------------Data Delarations--------------------
+00001C96                          1168  *-------------------------------------------------------
+00001C96                          1169  
+00001C96= 0D 0A 00                1170  crlf:           dc.b    $0D,$0A,0
+00001C99                          1171  
+00001C99= 2D 2D 2D 2D 2D 2D ...   1172  classIntro_msg: dc.b    '-------------------------------------------------------'
+00001CD0= 0D 0A                   1173                  dc.b    $0D,$0A
+00001CD2= 54 68 65 20 47 61 ...   1174                  dc.b    'The Galaxy is a big place, plenty of room for all kinds'
+00001D09= 0D 0A                   1175                  dc.b    $0D,$0A
+00001D0B= 42 75 74 20 77 68 ...   1176                  dc.b    'But what would you be?'
+00001D21= 0D 0A                   1177                  dc.b    $0D,$0A
+00001D23= 2D 2D 2D 2D 2D 2D ...   1178                  dc.b    '-------------------------------------------------------'
+00001D5A= 0D 0A 00                1179                  dc.b    $0D,$0A,0
+00001D5D                          1180  
+00001D5D= 2D 2D 2D 2D 2D 2D ...   1181  captain_msg:    dc.b    '---------------  Press 1 To Select  -------------------'
+00001D94= 0D 0A                   1182                  dc.b    $0D,$0A
+00001D96= 43 61 70 74 61 69 ...   1183                  dc.b    'Captain, No specializations but no real flaws. Has seen it all and returned in one piece.'
+00001DEF= 0D 0A                   1184                  dc.b    $0D,$0A
+00001DF1= 45 71 75 69 70 6D ...   1185                  dc.b    'Equipment - Pistol and a Loyal Crew.'
+00001E15= 0D 0A                   1186                  dc.b    $0D,$0A
+00001E17= 2D 2D 2D 2D 2D 2D ...   1187                  dc.b    '-------------------------------------------------------'
+00001E4E= 0D 0A 00                1188                  dc.b    $0D,$0A,0
+00001E51                          1189                  
+00001E51                          1190  
+00001E51                          1191  introGeneral_msg:
+00001E51= 0D 0A                   1192                  dc.b    $0D,$0A
+00001E53= 53 6F 6D 65 20 70 ...   1193                  dc.b    'Some people just have the road in their stars. You have for your own reasons for being where you are either for profit or lack of any alternative '
+00001EE5= 0D 0A                   1194                  dc.b    $0D,$0A
+00001EE7= 4E 6F 77 20 79 6F ...   1195                  dc.b    'Now you find yourself in orbit around a backwater planet, mercenary work has been slow for the last while and it shows'
+00001F5D= 0D 0A                   1196                  dc.b    $0D,$0A
+00001F5F= 54 68 65 20 73 68 ...   1197                  dc.b    'The ship, Clarity is not in as good condition as you would like,'
+00001F9F= 20 73 6F 6D 65 20 ...   1198                  dc.b    ' some crew were let loose and compromises had to be made.'
+00001FD8= 0D 0A                   1199                  dc.b    $0D,$0A
+00001FDA= 59 6F 75 20 64 6F ...   1200                  dc.b    'You dont think Kayle has forgiven you '
+00002000= 20 66 6F 72 20 74 ...   1201                  dc.b    ' for the loss of the coffee machine yet.'
+00002028= 0D 0A                   1202                  dc.b    $0D,$0A
+0000202A= 42 75 74 20 74 68 ...   1203                  dc.b    'But that doesn`t matter, You know that something is picking up. Whispers'
+00002072= 20 69 6E 20 64 61 ...   1204                  dc.b    ' in dark corners and hushed tones'
+00002093= 20 68 69 6E 74 20 ...   1205                  dc.b    ' hint of a time where things get a bit... messy. '
+000020C4= 0D 0A                   1206                  dc.b    $0D,$0A
+000020C6= 4E 65 76 65 72 20 ...   1207                  dc.b    'Never a better chance to strike it big.'
+000020ED= 0D 0A 00                1208                  dc.b    $0D,$0A,0
+000020F0                          1209                  
+000020F0                          1210  shipIntroGeneral_msg:
+000020F0= 42 6C 69 6E 6B 69 ...   1211                  dc.b    'Blinking you find yourself, face down on a tacky plastic table. '
+00002130= 4B 61 79 6C 65 20 ...   1212                  dc.b    'Kayle will probably give an earful about that later. Something about propriety'
+0000217E= 0D 0A                   1213                  dc.b    $0D,$0A
+00002180= 53 68 61 6B 69 6E ...   1214                  dc.b    'Shaking your head and looking around.'
+000021A5= 0D 0A 00                1215                  dc.b    $0D,$0A,0
+000021A8                          1216                  
+000021A8                          1217  shipHub_msg:
+000021A8= 54 68 65 20 73 68 ...   1218                  dc.b    'The ship seems to be running as intended, quiet humming in the background broken up by the few remaining technicians talking at their stations'
+00002236= 0D 0A 00                1219                  dc.b    $0D,$0A,0
+00002239                          1220  shipHubNoC_Selection_msg:
+00002239= 4E 6F 62 6F 64 79 ...   1221                  dc.b    'Nobody seems to be around, Might be time to look around the ship.'
+0000227A= 0D 0A 00                1222                  dc.b    $0D,$0A,0
+0000227D                          1223                  
+0000227D                          1224  kayleIdleHub_msg:
+0000227D= 0D 0A                   1225                  dc.b    $0D,$0A
+0000227F= 59 6F 75 20 63 61 ...   1226                  dc.b    'You can vaguely see Kayle off in the corner speaking with Navigation.'
+000022C4= 0D 0A 00                1227                  dc.b    $0D,$0A,0
+000022C7                          1228  
+000022C7                          1229                  
+000022C7                          1230  shipHub_BASE_OPTIONS_msg:
+000022C7= 0D 0A                   1231                  dc.b    $0D,$0A
+000022C9= 54 72 79 20 61 6E ...   1232                  dc.b    'Try and find a crew member (1), Head to the Ship Quartermaster (2), Check your Console for Job Opportunities (3), Head to your Quarters (4)'
+00002354= 0D 0A 00                1233                  dc.b    $0D,$0A,0
+00002357                          1234                  
+00002357                          1235  talkToCrewKayle_msg: 
+00002357= 0D 0A                   1236                  dc.b    $0D,$0A
+00002359= 59 6F 75 20 6B 6E ...   1237                  dc.b    'You know Kayle is on the command Deck [1]'
+00002382= 0D 0A 00                1238                  dc.b    $0D,$0A,0  
+00002385                          1239                  
+00002385                          1240  talkToCrewNobody_msg: 
+00002385= 0D 0A                   1241                  dc.b    $0D,$0A
+00002387= 54 68 65 20 73 68 ...   1242                  dc.b    'The ship is empty, you are on your own...'
+000023B0= 0D 0A 00                1243                  dc.b    $0D,$0A,0     
+000023B3                          1244  
+000023B3                          1245  talkToKayle_msg: 
+000023B3= 0D 0A                   1246                  dc.b    $0D,$0A
+000023B5= 4B 61 79 6C 65 20 ...   1247                  dc.b    'Kayle is busy working with the pilot making sure the ship doesn`t crash while you walk around aimlessly.'
+0000241D= 0D 0A                   1248                  dc.b    $0D,$0A 
+0000241F= 53 68 65 20 64 6F ...   1249                  dc.b    'She does look up when you come around, raising an eyebrow. You wanted something? '
+00002470= 0D 0A 00                1250                  dc.b    $0D,$0A,0
+00002473                          1251                  
+00002473                          1252  talkToKayleOptionsBase_msg:
+00002473= 0D 0A                   1253                  dc.b    $0D,$0A
+00002475= 50 72 65 73 73 20 ...   1254                  dc.b    'Press 0 to exit...'
+00002487= 0D 0A                   1255                  dc.b    $0D,$0A 
+00002489= 22 57 68 61 74 73 ...   1256                  dc.b    '"Whats the status of the ship? [1]"'
+000024AC= 0D 0A                   1257                  dc.b    $0D,$0A 
+000024AE= 22 41 6E 79 20 69 ...   1258                  dc.b    '"Any ideas what to do now? [2]"'
+000024CD= 0D 0A                   1259                  dc.b    $0D,$0A
+000024CF= 22 41 62 6F 75 74 ...   1260                  dc.b    '"About the coffe machine... [3]"'
+000024EF= 0D 0A 00                1261                  dc.b    $0D,$0A,0                
+000024F2                          1262  
+000024F2                          1263  talkToKayleShipStatus_msg:
+000024F2= 0D 0A                   1264                  dc.b    $0D,$0A
+000024F4= 53 68 65 20 66 72 ...   1265                  dc.b    'She frowns for a second thinking, "Is there a better word for a flying deathtrap?" '
+00002547= 0D 0A                   1266                  dc.b    $0D,$0A
+00002549= 53 68 61 6B 65 73 ...   1267                  dc.b    'Shakes her head "We are in as good a state as we can hope for, when we die it wont be because of a goddamn engine failure"'
+000025C3= 0D 0A                   1268                  dc.b    $0D,$0A
+000025C5= 53 68 65 20 67 69 ...   1269                  dc.b    'She gives you the side eye, its clear to her who`s bright idea will lead to said fiery death in a ignoble fashion.'
+00002637= 0D 0A 00                1270                  dc.b    $0D,$0A,0   
+0000263A                          1271                  
+0000263A                          1272  talkToKayleHelp_msg:
+0000263A= 0D 0A                   1273                  dc.b    $0D,$0A
+0000263C= 53 68 65 20 62 6C ...   1274                  dc.b    'She blink, face blank for a second. "Isn`t that your job to figure out?" Theres a drawn out sigh and mutters about past job opportunities'
+000026C5= 0D 0A                   1275                  dc.b    $0D,$0A
+000026C7= 54 61 6B 69 6E 67 ...   1276                  dc.b    'Taking a breath she responds "Look I know you generally just make things up as you go along but could you at least pretend you have a plan?"'
+00002753= 0D 0A                   1277                  dc.b    $0D,$0A
+00002755= 41 20 76 61 67 75 ...   1278                  dc.b    'A vague gesture towards your console followed by a backhanded mention to check it for job offer that actually pay might be the best plan.'
+000027DE= 0D 0A 00                1279                  dc.b    $0D,$0A,0   
+000027E1                          1280                  
+000027E1                          1281  talkToKayleCoffe_msg:
+000027E1= 0D 0A                   1282                  dc.b    $0D,$0A
+000027E3= 4A 75 73 74 20 61 ...   1283                  dc.b    'Just as you start talking theres a twinge at the back of your neck. Kayle`s expression hasn`t changed,'
+00002849= 20 62 75 74 20 79 ...   1284                  dc.b    ' but you get the feeling you should stop for your own health if nothing else.'
+00002896= 0D 0A                   1285                  dc.b    $0D,$0A
+00002898= 59 6F 75 20 62 61 ...   1286                  dc.b    'You back off from that minefield and try to convince yourself that she had snapped that pen for other unrelated reasons.'
+00002910= 0D 0A 00                1287                  dc.b    $0D,$0A,0 
+00002913                          1288                  
+00002913                          1289                  
+00002913                          1290  shopMenuBaseMenu_msg:
+00002913= 0D 0A                   1291                  dc.b    $0D,$0A
+00002915= 54 68 65 20 71 75 ...   1292                  dc.b    'The quartermaster is really just an old man with very good connections you picked up one day for... reasons?'
+00002981= 0D 0A                   1293                  dc.b    $0D,$0A
+00002983= 52 65 67 61 72 64 ...   1294                  dc.b    'Regardless now he can get you what you need, for a price of course.'
+000029C6= 0D 0A                   1295                  dc.b    $0D,$0A
+000029C8= 45 78 69 74 20 2E ...   1296                  dc.b    'Exit ... [0]'
+000029D4= 0D 0A                   1297                  dc.b    $0D,$0A
+000029D6= 42 72 6F 77 73 65 ...   1298                  dc.b    'Browse Wares [1]'
+000029E6= 0D 0A                   1299                  dc.b    $0D,$0A
+000029E8= 43 72 65 64 69 74 ...   1300                  dc.b    'Credits : '
+000029F2= 0D 0A 00                1301                  dc.b    $0D,$0A,0 
+000029F5                          1302                  
+000029F5                          1303  
+000029F5                          1304  itemRenownZero_msg:
+000029F5= 0D 0A                   1305                  dc.b    $0D,$0A
+000029F7= 54 68 65 20 71 75 ...   1306                  dc.b    'The quartermaster rubs his chin and shrugs. "Hard to get people to go out of their way for nobodies, now if we had some renown.."'
+00002A78= 0D 0A                   1307                  dc.b    $0D,$0A
+00002A7A= 50 69 73 74 6F 6C ...   1308                  dc.b    'Pistol - +4 AD - 1000 Credits [1]'
+00002A9B= 0D 0A                   1309                  dc.b    $0D,$0A
+00002A9D= 45 78 69 74 20 2E ...   1310                  dc.b    'Exit ... [0]'
+00002AA9= 0D 0A 00                1311                  dc.b    $0D,$0A,0
+00002AAC                          1312  
+00002AAC                          1313  ownedWeapon_msg:   
+00002AAC= 0D 0A                   1314                  dc.b    $0D,$0A
+00002AAE= 59 6F 75 20 74 68 ...   1315                  dc.b    'You think about it, then remember that you have one just like it. Dual wielding does not work like in the movies.'
+00002B1F= 0D 0A 00                1316                  dc.b    $0D,$0A,0   
+00002B22                          1317  
+00002B22                          1318  captainRoomIntro_msg:
+00002B22= 0D 0A                   1319                  dc.b    $0D,$0A
+00002B24= 59 6F 75 20 66 69 ...   1320                  dc.b    'You find your way to your quarters, small and cramped but its yours. As you lean back into a chair a relection catches your eye.'
+00002BA4= 0D 0A 00                1321                  dc.b    $0D,$0A,0  
+00002BA7                          1322          
+00002BA7                          1323  
+00002BA7                          1324  missionConsoleIntro_msg:
+00002BA7= 0D 0A                   1325                  dc.b    $0D,$0A
+00002BA9= 50 69 63 6B 69 6E ...   1326                  dc.b    'Picking your way to your console you check it over for any good job offers. [1] To begin a mission'
+00002C0B= 0D 0A 00                1327                  dc.b    $0D,$0A,0 
+00002C0E                          1328                  
+00002C0E                          1329  mission1Briefing_msg:
+00002C0E= 0D 0A                   1330                  dc.b    $0D,$0A
+00002C10= 59 6F 75 20 6C 6F ...   1331                  dc.b    'You look back over the offer that brought you here, an official from the '
+00002C59= 63 6F 6C 6F 6E 79 ...   1332                  dc.b    'colony below belived a serial bomber had taken up residence in their area.'
+00002CA3= 0D 0A                   1333                  dc.b    $0D,$0A
+00002CA5= 52 65 67 61 72 64 ...   1334                  dc.b    'Regardless of the circumstances it seems like it will be a bit quieter than '
+00002CF1= 6D 6F 73 74 20 74 ...   1335                  dc.b    'most things you have to deal with, the clock would be against you though.'
+00002D3A= 0D 0A 00                1336                  dc.b    $0D,$0A,0 
+00002D3D                          1337                  
+00002D3D                          1338  mission1SetUp_msg:                
+00002D3D= 0D 0A                   1339                  dc.b    $0D,$0A
+00002D3F= 41 73 73 69 67 6E ...   1340                  dc.b    'Assignment on Eden - 5, Objective: Find the Bomber before they act again. [1] '
+00002D8D= 0D 0A                   1341                  dc.b    $0D,$0A                
+00002D8F= 45 78 70 65 63 74 ...   1342                  dc.b    'Expected Conflict - Low'
+00002DA6= 0D 0A                   1343                  dc.b    $0D,$0A
+00002DA8= 52 65 77 61 72 64 ...   1344                  dc.b    'Reward - 1500 Credits '
+00002DBE= 0D 0A 00                1345                  dc.b    $0D,$0A,0 
+00002DC1                          1346  
+00002DC1                          1347  missionCrewSelect_msg:
+00002DC1= 0D 0A                   1348                  dc.b    $0D,$0A
+00002DC3= 53 65 6C 65 63 74 ...   1349                  dc.b    'Select a partner to come with you. '
+00002DE6= 0D 0A 00                1350                  dc.b    $0D,$0A,0
+00002DE9                          1351                  
+00002DE9                          1352  missionChoiceOptions_msg:                
+00002DE9                          1353   
+00002DE9= 0D 0A                   1354                  dc.b    $0D,$0A
+00002DEB= 53 65 6C 65 63 74 ...   1355                  dc.b    'Select a mission to prepare to embark onto, Press 0 to exit '
+00002E27= 0D 0A 00                1356                  dc.b    $0D,$0A,0
+00002E2A                          1357                 
+00002E2A                          1358  missionKayle_msg:
+00002E2A= 0D 0A                   1359                  dc.b    $0D,$0A
+00002E2C= 4B 61 79 6C 65 20 ...   1360                  dc.b    'Kayle - Has Gun, Will Travel. Talking isnt her strongest side [1]'
+00002E6D= 0D 0A 00                1361                  dc.b    $0D,$0A,0
+00002E70                          1362                  
+00002E70                          1363  missionNobody_msg:
+00002E70= 0D 0A                   1364                  dc.b    $0D,$0A
+00002E72= 4E 6F 62 6F 64 79 ...   1365                  dc.b    'Nobody - Who needs Friends? [5]'
+00002E91= 0D 0A 00                1366                  dc.b    $0D,$0A,0 
+00002E94                          1367  
+00002E94                          1368  
+00002E94                          1369  mission1Intro_msg:
+00002E94= 0D 0A                   1370                  dc.b    $0D,$0A
+00002E96= 41 66 74 65 72 20 ...   1371                  dc.b    'After docking and contacting your employers as quickly as '
+00002ED0= 70 6F 73 73 69 62 ...   1372                  dc.b    'possible. They explain the situation.'
+00002EF5= 0D 0A                   1373                  dc.b    $0D,$0A
+00002EF7= 4E 6F 74 20 6C 6F ...   1374                  dc.b    'Not long ago they recieved a bomb threat from an insane bomber '
+00002F36= 77 68 6F 20 68 61 ...   1375                  dc.b    'who had been attacking various locations for far too long.'                
+00002F70= 0D 0A                   1376                  dc.b    $0D,$0A
+00002F72= 4F 6E 20 74 68 65 ...   1377                  dc.b    'On the edge and with their own fledgling security unable to'
+00002FAD= 20 66 69 6E 64 20 ...   1378                  dc.b    ' find the audibly insane man they reached out to you.'
+00002FE2= 0D 0A                   1379                  dc.b    $0D,$0A
+00002FE4= 4E 6F 20 6C 65 61 ...   1380                  dc.b    'No leads, no help, nothing. You really pulled an easy one here, '
+00003024= 6E 6F 62 6F 64 79 ...   1381                  dc.b    'nobody really expects anything. But if you succeded...'
+0000305A= 0D 0A                   1382                  dc.b    $0D,$0A
+0000305C= 53 68 61 6B 69 6E ...   1383                  dc.b    'Shaking off thoughts of the future for now, theres only so much time '
+000030A1= 6C 65 66 74 2E 20 ...   1384                  dc.b    'left. You dont have enough of it waste daydreaming'               
+000030D3= 0D 0A 00                1385                  dc.b    $0D,$0A,0
+000030D6                          1386  
+000030D6                          1387  mission1Hub_msg:
+000030D6= 0D 0A                   1388                  dc.b    $0D,$0A
+000030D8= 59 6F 75 20 66 69 ...   1389                  dc.b    'You find yourself in the centre of the colony`s capital, a bomb threat does nothing to stop the lively atmosphere.'
+0000314A= 0D 0A                   1390                  dc.b    $0D,$0A
+0000314C= 50 65 6F 70 6C 65 ...   1391                  dc.b    'People are threading their way through their own lives and you cant help but wonder if your mark was nearby.'
+000031B8= 0D 0A                   1392                  dc.b    $0D,$0A
+000031BA= 50 61 75 73 69 6E ...   1393                  dc.b    'Pausing for a moment you think about your options, the clock is ticking...'                
+00003204= 0D 0A 00                1394                  dc.b    $0D,$0A,0
+00003207                          1395                  
+00003207                          1396                  
+00003207                          1397  mission1HubOptions_msg:
+00003207= 0D 0A                   1398                  dc.b    $0D,$0A
+00003209= 54 68 65 72 65 20 ...   1399                  dc.b    'There are a few things that could give you a clue, but you should be careful, running around wasting time cant end well...'
+00003283= 0D 0A                   1400                  dc.b    $0D,$0A
+00003285= 54 68 65 20 43 6F ...   1401                  dc.b    'The Col.Sec havent found this guy yet but maybe they have some idea about ... something? [1]'
+000032E1= 0D 0A                   1402                  dc.b    $0D,$0A
+000032E3= 41 20 70 61 73 73 ...   1403                  dc.b    'A passing drunk man reminds you of the local watering holes, it would be difficult but maybe someone might let something slip [2]'
+00003364= 0D 0A                   1404                  dc.b    $0D,$0A
+00003366= 54 68 65 20 6C 61 ...   1405                  dc.b    'The last option is one your wallet dislikes, information can be bought just like anything else, maybe someone`s selling? [3] '                
+000033E3= 0D 0A 00                1406                  dc.b    $0D,$0A,0  
+000033E6                          1407               
+000033E6                          1408  mission1PoliceStationDesc_msg:
+000033E6= 0D 0A                   1409                  dc.b    $0D,$0A
+000033E8= 54 68 65 20 73 6F ...   1410                  dc.b    'The somewhat too shiny security quarters has a rather pleasant looking secretary who directs you to the waiting room'
+0000345C= 0D 0A                   1411                  dc.b    $0D,$0A
+0000345E= 41 20 62 61 63 6B ...   1412                  dc.b    'A backhanded comment of being dealt with "Shortly" before you are left to your own devices, leaning back into a seat'
+000034D2= 0D 0A                   1413                  dc.b    $0D,$0A
+000034D4= 54 68 69 73 20 73 ...   1414                  dc.b    'This shouldn`t take long.'                
+000034ED= 0D 0A 00                1415                  dc.b    $0D,$0A,0                 
+000034F0                          1416  
+000034F0                          1417  mission1PoliceStationResult_msg:
+000034F0= 0D 0A                   1418                  dc.b    $0D,$0A
+000034F2= 59 6F 75 20 72 65 ...   1419                  dc.b    'You regret alot of things, most of them involve tempting fate. Beauracracy and bruised pride at your presence'
+0000355F= 0D 0A                   1420                  dc.b    $0D,$0A
+00003561= 6D 65 61 6E 74 20 ...   1421                  dc.b    'meant that every possible delay was heaped upon you. You dont know if it was pettiness or if that was the norm'
+000035CF= 0D 0A                   1422                  dc.b    $0D,$0A
+000035D1= 52 65 67 61 72 64 ...   1423                  dc.b    'Regardless this was a waste of time they had nothing that`s why you are here. You need to hurry.'                
+00003631= 0D 0A 00                1424                  dc.b    $0D,$0A,0
+00003634                          1425  
+00003634                          1426  mission1BarDesc_msg:
+00003634= 0D 0A                   1427                  dc.b    $0D,$0A
+00003636= 54 68 69 73 20 62 ...   1428                  dc.b    'This bar like most of the ones you find yourself dwelling inside in recent times is a dump. Seedy, dark and filled'
+000036A8= 0D 0A                   1429                  dc.b    $0D,$0A
+000036AA= 77 69 74 68 20 70 ...   1430                  dc.b    'with people trying to avoid the crowds and their associated law enforcers your sure. Regardless alcohol has been the'
+0000371E= 0D 0A                   1431                  dc.b    $0D,$0A
+00003720= 63 61 75 73 65 20 ...   1432                  dc.b    'cause of alot of problems but maybe this time you can fix one with it.'                
+00003766= 0D 0A 00                1433                  dc.b    $0D,$0A,0
+00003769                          1434                  
+00003769                          1435  mission1BarSearch_msg:
+00003769= 0D 0A                   1436                  dc.b    $0D,$0A
+0000376B= 59 6F 75 20 63 6F ...   1437                  dc.b    'You could find a group, poke them for information while they are too far gone to recognise the probing questions? [1]'                
+000037E0= 0D 0A 00                1438                  dc.b    $0D,$0A,0                
+000037E3                          1439  
+000037E3                          1440  mission1BarIntuitionOption_msg:
+000037E3= 0D 0A                   1441                  dc.b    $0D,$0A
+000037E5= 28 20 48 69 67 68 ...   1442                  dc.b    '( High Intuition )The back of your neck twinges as you see a line of ragged figures at bar counter... [2]'                
+0000384E= 0D 0A 00                1443                  dc.b    $0D,$0A,0
+00003851                          1444  
+00003851                          1445  mission1BarIntuitionResult_msg:
+00003851= 0D 0A                   1446                  dc.b    $0D,$0A
+00003853= 59 6F 75 20 73 74 ...   1447                  dc.b    'You struck gold, the ragged men were beggars and after a few drinks to their health they dont even notice'
+000038BC= 0D 0A                   1448                  dc.b    $0D,$0A
+000038BE= 77 68 65 6E 20 79 ...   1449                  dc.b    'when your questions turn more pointed. Inbetween the many pointless bits of trivia there is one thing.' 
+00003924= 0D 0A                   1450                  dc.b    $0D,$0A
+00003926= 4F 6E 65 20 6F 66 ...   1451                  dc.b    'One of the beggars had a favourite spot outside the council estate hall something about symbiotic P.R acts of generosity'
+0000399E= 0D 0A                   1452                  dc.b    $0D,$0A
+000039A0= 42 75 74 20 77 68 ...   1453                  dc.b    'But what catches your attention is his strange encounter with a man who came everyday to the same spot and just watched.'
+00003A18= 0D 0A                   1454                  dc.b    $0D,$0A
+00003A1A= 59 6F 75 20 73 70 ...   1455                  dc.b    'You spend the rest of your time and patience prodding to get some identification before finally getting an address.'
+00003A8D= 0D 0A                   1456                  dc.b    $0D,$0A
+00003A8F= 59 6F 75 60 72 65 ...   1457                  dc.b    'You`re onto something.'                               
+00003AA5= 0D 0A 00                1458                  dc.b    $0D,$0A,0
+00003AA8                          1459  
+00003AA8                          1460  mission1BarSearchResult_msg:
+00003AA8= 0D 0A                   1461                  dc.b    $0D,$0A
+00003AAA= 54 68 65 20 68 6F ...   1462                  dc.b    'The hours swim together into a swirl as one drink to fit in becomes several and you find yourself waking in an alley later'
+00003B24= 0D 0A                   1463                  dc.b    $0D,$0A
+00003B26= 77 69 74 68 20 61 ...   1464                  dc.b    'with a headache and nothing much else to show for it. The sun travelling crossing the sky catches your attention, time is ticking'                                
+00003BA7= 0D 0A 00                1465                  dc.b    $0D,$0A,0 
+00003BAA                          1466  
+00003BAA                          1467  mission1InfoBrokerDesc_msg:
+00003BAA= 0D 0A                   1468                  dc.b    $0D,$0A
+00003BAC= 41 6C 6F 74 20 6F ...   1469                  dc.b    'Alot of effort and searching afterwards lead you to a broker hidden so well, only scoundrels and their asscociates would know where'
+00003C2F= 0D 0A                   1470                  dc.b    $0D,$0A
+00003C31= 74 6F 20 67 6F 2E ...   1471                  dc.b    'to go. The climate controlled clean office is a bit offputting with the clock you know is ticking down, but knowing how these things'
+00003CB5= 0D 0A                   1472                  dc.b    $0D,$0A
+00003CB7= 67 6F 20 79 6F 75 ...   1473                  dc.b    'go you sit down and wait. A small powerplay, aggrevating but nothing someone like you can do about it right now, if you had more of a'  
+00003D3C= 0D 0A                   1474                  dc.b    $0D,$0A
+00003D3E= 6E 61 6D 65 20 74 ...   1475                  dc.b    'name to throw about then this would never happen. But such is your lot in life.'
+00003D8D= 0D 0A                   1476                  dc.b    $0D,$0A
+00003D8F= 45 76 65 6E 74 75 ...   1477                  dc.b    'Eventually you are brought into a clean smelling office where a disturbingly pale looking man makes you a deal. It was easy to guess'
+00003E13= 0D 0A                   1478                  dc.b    $0D,$0A
+00003E15= 77 68 61 74 20 79 ...   1479                  dc.b    'what you wanted, so he laid out the deal. 400 credits upfront for a name, address. Nothing more... Agree[1]? Disagree [2]?'                              
+00003E8F= 0D 0A 00                1480                  dc.b    $0D,$0A,0 
+00003E92                          1481                  
+00003E92                          1482  mission1InfoBrokerNoResult_msg:
+00003E92= 0D 0A                   1483                  dc.b    $0D,$0A
+00003E94= 4E 6F                   1484                  dc.b    'No'
+00003E96= 0D 0A                   1485                  dc.b    $0D,$0A
+00003E98= 41 20 73 69 67 68 ...   1486                  dc.b    'A sigh before a large meaty hand attached to an equally meating looking mountain of man "guides" you outside.'
+00003F05= 0D 0A                   1487                  dc.b    $0D,$0A
+00003F07= 4E 6F 74 68 69 6E ...   1488                  dc.b    'Nothing, wonderful. Your watch reminds you that at any time the bomber might decide his patience is gone. You need to hurry'                              
+00003F82= 0D 0A 00                1489                  dc.b    $0D,$0A,0
+00003F85                          1490  
+00003F85                          1491  mission1InfoBrokerYesResult_msg:
+00003F85= 0D 0A                   1492                  dc.b    $0D,$0A
+00003F87= 59 65 73                1493                  dc.b    'Yes'
+00003F8A= 0D 0A                   1494                  dc.b    $0D,$0A
+00003F8C= 41 20 63 6C 65 61 ...   1495                  dc.b    'A clean efficient transaction, a clean folder with a notable lack of any prints or smudges.'
+00003FE7= 0D 0A                   1496                  dc.b    $0D,$0A
+00003FE9= 4B 6F 72 76 69 6E ...   1497                  dc.b    'Korvin Smith, M , Age 34 , Known mental issues, Delusions and paranoia related to authority. Known address...'                              
+00004056= 0D 0A 00                1498                  dc.b    $0D,$0A,0                     
+00004059                          1499  
+00004059                          1500  mission1BomberHouseOption_msg:
+00004059= 0D 0A                   1501                  dc.b    $0D,$0A
+0000405B= 59 6F 75 20 68 61 ...   1502                  dc.b    'You have an address, with a bit of luck and alot of speed you can catch him before he does anything. [4]'                             
+000040C3= 0D 0A 00                1503                  dc.b    $0D,$0A,0
+000040C6                          1504  
+000040C6                          1505  mission1BomberHouseDesc_msg:
+000040C6= 0D 0A                   1506                  dc.b    $0D,$0A
+000040C8= 4D 6F 76 69 6E 67 ...   1507                  dc.b    'Moving quickly through the streets, gettin lost at some points but in the end you are able to find his house.'
+00004135= 0D 0A                   1508                  dc.b    $0D,$0A
+00004137= 54 68 65 20 6F 75 ...   1509                  dc.b    'The outside is clean, the inside however is a different story. After breaking down the door and clearing all the rooms'
+000041AD= 0D 0A                   1510                  dc.b    $0D,$0A
+000041AF= 79 6F 75 20 63 6F ...   1511                  dc.b    'you confirm that the bomber is not here, calming slightly after that you set about trying to find where he might have gone.'
+0000422A= 0D 0A                   1512                  dc.b    $0D,$0A
+0000422C= 0D 0A                   1513                  dc.b    $0D,$0A
+0000422E= 4C 6F 6F 6B 69 6E ...   1514                  dc.b    'Looking around you find mountains of trashed sprinkled with unused pill bottles. Checking under the bed nearly gives you '
+000042A7= 0D 0A                   1515                  dc.b    $0D,$0A
+000042A9= 61 20 68 65 61 72 ...   1516                  dc.b    'a heart attack when you see several homemade explosive sachets before realising they`re not live. You think for a moment'
+00004321= 0D 0A                   1517                  dc.b    $0D,$0A
+00004323= 61 6E 64 20 61 63 ...   1518                  dc.b    'and act, Col.Sec would later find one less explosive than was actually there but never know when something like that could'
+0000439D= 0D 0A                   1519                  dc.b    $0D,$0A
+0000439F= 63 6F 6D 65 20 69 ...   1520                  dc.b    'come in handy. Eventually your search bears fruit, buried in the written ramblings of a very confused person was a small '
+00004418= 0D 0A                   1521                  dc.b    $0D,$0A        
+0000441A= 73 63 72 61 70 62 ...   1522                  dc.b    'scrapbook. Flipping through it quickly shows a list of unconnected buildings and buisnesses, except that they had all been '
+00004495= 0D 0A                   1523                  dc.b    $0D,$0A 
+00004497= 62 6C 6F 77 6E 20 ...   1524                  dc.b    'blown to cinders in recent times... There were three things in the book that hadn`t been attacked yet as far as you know. '
+00004511= 0D 0A                   1525                  dc.b    $0D,$0A 
+00004513= 0D 0A                   1526                  dc.b    $0D,$0A 
+00004515= 41 20 70 69 63 74 ...   1527                  dc.b    'A picture of the main Col.Sec Station [1], A series of brochures about the Legislative Council`s Estate Hall and ... '
+0000458A= 0D 0A                   1528                   dc.b    $0D,$0A 
+0000458C= 41 20 70 69 63 74 ...   1529                  dc.b    'A picture of a couple, a small uneasy looking man you recognise as Mr.Smith, the bomber and a smiling lady beside him [3] '                                       
+00004606= 0D 0A 00                1530                  dc.b    $0D,$0A,0
+00004609                          1531                  
+00004609                          1532  mission1BomberPolice_msg:                
+00004609= 0D 0A                   1533                  dc.b    $0D,$0A 
+0000460B= 43 6F 6C 2E 53 65 ...   1534                  dc.b    'Col.Sec has a reputation for beauracracy and slow response times, bad but not enough to let them blow up for. Acting quickly'   
+00004687= 0D 0A                   1535                   dc.b    $0D,$0A 
+00004689= 79 6F 75 20 66 69 ...   1536                  dc.b    'you find yourself in the station faster than you expected, shrugging and walk in. What followed was what felt like a slow '
+00004703= 0D 0A                   1537                   dc.b    $0D,$0A 
+00004705= 72 65 73 70 6F 6E ...   1538                  dc.b    'response to a bomb threat in your opinion but eventually the station is searched and cleared. No sign of explosive devices'
+0000477F= 0D 0A                   1539                   dc.b    $0D,$0A 
+00004781= 57 72 6F 6E 67 20 ...   1540                  dc.b    'Wrong place, even as you run back to the house you see other Col.Sec guards fanning out in search of your mark.'
+000047F0= 0D 0A                   1541                   dc.b    $0D,$0A 
+000047F2= 45 76 65 6E 20 74 ...   1542                  dc.b    'Even the slow response force is getting with the show, hope it wasnt too late. '                                          
+00004841= 0D 0A 00                1543                  dc.b    $0D,$0A,0
+00004844                          1544  
+00004844                          1545  
+00004844                          1546  mission1BomberEx_msg:                
+00004844= 0D 0A                   1547                  dc.b    $0D,$0A 
+00004846= 54 68 65 20 68 6F ...   1548                  dc.b    'The house had no signs of more than one person living here, but once there was. Revenge against someone an ex? Excessive '   
+000048BF= 0D 0A                   1549                   dc.b    $0D,$0A 
+000048C1= 20 62 75 74 20 74 ...   1550                  dc.b    ' but the potential damage that could occur from such an attack makes the decision for you. A search of the house gives a '
+0000493A= 0D 0A                   1551                   dc.b    $0D,$0A 
+0000493C= 6E 61 6D 65 2E 20 ...   1552                  dc.b    'name. Kelly Waters and her number still written down beside the phone. It takes several calls before you get ahold of her'
+000049B5= 0D 0A                   1553                   dc.b    $0D,$0A 
+000049B7= 20 77 68 69 6C 65 ...   1554                  dc.b    ' while the conversation starts calm it quickly stops being that, and even you can admit telling someone over a phone an'
+00004A2E= 0D 0A                   1555                   dc.b    $0D,$0A 
+00004A30= 45 78 20 6D 69 67 ...   1556                  dc.b    'Ex might be out for their blood is a bit.. blunt? Regardless she has agreed to go to Col.Sec Station to stay safe. '                                          
+00004AA3= 0D 0A 00                1557                  dc.b    $0D,$0A,0 
+00004AA6                          1558  
+00004AA6                          1559  mission1BomberCouncil_msg:                
+00004AA6= 0D 0A                   1560                  dc.b    $0D,$0A 
+00004AA8= 54 68 65 20 63 6F ...   1561                  dc.b    'The council estate... there were alot of links between his recent behaviour and that building. '   
+00004B07= 0D 0A                   1562                   dc.b    $0D,$0A 
+00004B09= 20 54 61 6B 69 6E ...   1563                  dc.b    ' Taking a chance you order a lift even as you contact your employers about the threat. Evacuations in place you  '
+00004B7A= 0D 0A                   1564                   dc.b    $0D,$0A 
+00004B7C= 67 65 74 20 6D 6F ...   1565                  dc.b    'get moving as quickly as you can. You see the somewhat bare architechture of the estate hall ahead.'
+00004BDF= 0D 0A                   1566                   dc.b    $0D,$0A 
+00004BE1= 4E 6F 74 69 6E 67 ...   1567                  dc.b    'Noting the stream of people slowly making their way out of the building as you take a less used entrance, '
+00004C4B= 0D 0A                   1568                   dc.b    $0D,$0A 
+00004C4D= 77 68 61 74 20 66 ...   1569                  dc.b    'what follows is a slow, tense search. You swear that at any moment you might hear a roar of thunder, a wave of heat '
+00004CC1= 0D 0A                   1570                  dc.b    $0D,$0A 
+00004CC3= 74 68 65 6E 20 6E ...   1571                  dc.b    'then nothing. But it doesn`t happen, everything is quiet, all the people long since evacuated. Maybe you were ...'
+00004D34= 0D 0A                   1572                  dc.b    $0D,$0A 
+00004D36= 61 20 74 77 69 6E ...   1573                  dc.b    'a twinge at the back of your neck instinctively brings you to a stop when a hail of bullets spray out from down the '
+00004DAA= 0D 0A                   1574                  dc.b    $0D,$0A 
+00004DAC= 68 61 6C 6C 77 61 ...   1575                  dc.b    'hallway you were going to turn down. Just a second later.... shaking off the brush with the reaper before you met him '
+00004E22= 0D 0A                   1576                  dc.b    $0D,$0A 
+00004E24= 66 6F 72 20 72 65 ...   1577                  dc.b    'for real. The spray had stopped but you both know where the other is... well you expected this fight? [1]'                           
+00004E8D= 0D 0A 00                1578                  dc.b    $0D,$0A,0 
+00004E90                          1579  
+00004E90                          1580  mission1BomberKayle_msg:
+00004E90= 0D 0A                   1581                  dc.b    $0D,$0A
+00004E92= 41 20 63 6F 75 67 ...   1582                  dc.b    'A cough from behind you as Kayle reminds you of her presence.'
+00004ECF= 0D 0A                   1583                  dc.b    $0D,$0A
+00004ED1= 4E 65 65 64 20 61 ...   1584                  dc.b    'Need a hand? [2]'                                               
+00004EE1= 0D 0A 00                1585                  dc.b    $0D,$0A,0 
+00004EE4                          1586                  
+00004EE4                          1587  mission1BomberFightKayle_msg:
+00004EE4= 0D 0A                   1588                  dc.b    $0D,$0A
+00004EE6= 54 68 69 73 20 69 ...   1589                  dc.b    'This is clearly a very dangerous situation, best time to practice that wonderful skill. Delegation '
+00004F49= 0D 0A                   1590                  dc.b    $0D,$0A
+00004F4B= 59 6F 75 20 6C 65 ...   1591                  dc.b    'You lean back against the wall as Kayle vanishes around the corner, you ignore the noises that occur afterwards.'
+00004FBB= 0D 0A                   1592                  dc.b    $0D,$0A
+00004FBD= 54 72 79 69 6E 67 ...   1593                  dc.b    'Trying instead to think about what to do after this job, but even then those pleads will return in your nightmares'
+0000502F= 0D 0A                   1594                  dc.b    $0D,$0A
+00005031= 4B 61 79 6C 65 20 ...   1595                  dc.b    'Kayle rounds the corner wiping her hands on her pants. Nods, Jobs done.'                                               
+00005078= 0D 0A 00                1596                  dc.b    $0D,$0A,0                
+0000507B                          1597                  
+0000507B                          1598  combatOptions_msg:                
+0000507B= 0D 0A                   1599                  dc.b    $0D,$0A
+0000507D= 41 74 74 61 63 6B ...   1600                  dc.b    'Attack and deal Damage? [1], Defend and heal ?[2] or use a Special Item [3]'                                               
+000050C8= 0D 0A 00                1601                  dc.b    $0D,$0A,0
+000050CB                          1602  
+000050CB                          1603  fightSystemHE_Pres_msg: 
+000050CB= 0D 0A                   1604                  dc.b    $0D,$0A
+000050CD= 55 73 65 20 61 20 ...   1605                  dc.b    'Use a H.E Sachet?[1]'                                               
+000050E1= 0D 0A 00                1606                  dc.b    $0D,$0A,0               
+000050E4                          1607                  
+000050E4                          1608   
+000050E4                          1609  mission1GameOver_msg:
+000050E4= 0D 0A                   1610                  dc.b    $0D,$0A
+000050E6= 41 20 74 68 75 6E ...   1611                  dc.b    'A thunderous sound, rising screams and alarms. Failure and de.. You shake your head and move on.'
+00005146= 0D 0A                   1612                  dc.b    $0D,$0A
+00005148= 4E 6F 20 6E 65 65 ...   1613                  dc.b    'No need to psyche yourself out with worst case scenarios'                                               
+00005180= 0D 0A 00                1614                  dc.b    $0D,$0A,0 
+00005183                          1615  
+00005183                          1616  mission1Conclusion_msg:
+00005183= 0D 0A                   1617                  dc.b    $0D,$0A
+00005185= 54 68 65 20 66 6F ...   1618                  dc.b    'The following events after the mission ended are a bit of a blur. You did get paid and got checked over by a'
+000051F1= 0D 0A                   1619                  dc.b    $0D,$0A
+000051F3= 64 6F 63 74 6F 72 ...   1620                  dc.b    'doctor.. returning to your ship you are left to wonder. Now what?'                                               
+00005234= 0D 0A 00                1621                  dc.b    $0D,$0A,0 
+00005237                          1622                  
+00005237                          1623  retirementMessage_msg:                
+00005237= 0D 0A                   1624                  dc.b    $0D,$0A
+00005239= 59 6F 75 20 68 61 ...   1625                  dc.b    'You have nearly died to many times for you to count to this date. Retire? [1]'                                              
+00005286= 0D 0A 00                1626                  dc.b    $0D,$0A,0
+00005289                          1627  
+00005289                          1628  retirement_msg:                
+00005289= 0D 0A                   1629                  dc.b    $0D,$0A
+0000528B= 59 6F 75 20 73 75 ...   1630                  dc.b    'You survived to retirement with a relatively well known reputation. Thats the game, thanks for playing'                                              
+000052F1= 0D 0A 00                1631                  dc.b    $0D,$0A,0  
+000052F4                          1632                  
+000052F4                          1633                  
+000052F4                          1634                 
+000052F4                          1635  pressKContinue_msg:
+000052F4= 0D 0A                   1636                  dc.b    $0D,$0A
+000052F6= 50 72 65 73 73 20 ...   1637                  dc.b    'Press any Key to Continue...'
+00005312= 0D 0A 00                1638                  dc.b    $0D,$0A,0
+00005315                          1639                  
+00005315                          1640                  
+00005315                          1641  
+00005315                          1642  exit0_msg:
+00005315= 0D 0A                   1643                  dc.b    $0D,$0A
+00005317= 50 72 65 73 73 20 ...   1644                  dc.b    'Press 0 to exit...'
+00005329= 0D 0A 00                1645                  dc.b    $0D,$0A,0
+0000532C                          1646                  
+0000532C                          1647  displayCredits_msg:
+0000532C= 0D 0A                   1648                  dc.b    $0D,$0A
+0000532E= 43 72 65 64 69 74 ...   1649                  dc.b    'Credits : ',0 
+00005339                          1650  
+00005339                          1651  notEnoughCash_msg:
+00005339= 0D 0A                   1652                  dc.b    $0D,$0A
+0000533B= 54 68 65 20 73 61 ...   1653                  dc.b    'The sale comes to halt when your poor bank account cant handle the cost.'
+00005383= 0D 0A 00                1654                  dc.b    $0D,$0A,0
+00005386                          1655                  
+00005386                          1656  
+00005386                          1657  packAway_msg:
+00005386= 0D 0A                   1658                  dc.b    $0D,$0A
+00005388= 54 68 65 20 73 61 ...   1659                  dc.b    'The sale completes and you pack away your new toy.'
+000053BA= 0D 0A 00                1660                  dc.b    $0D,$0A,0 
+000053BD                          1661                  
+000053BD                          1662  planet1_msg:
+000053BD                          1663  
+000053BD= 20 49 6E 20 6F 72 ...   1664                  dc.b    ' In orbit of Eden - 5 ',0                
+000053D4                          1665                  
+000053D4                          1666                  
+000053D4                          1667  lineBreak_msg:                
+000053D4= 0D 0A                   1668                  dc.b    $0D,$0A
+000053D6= 2D 2D 2D 2D 2D 2D ...   1669                  dc.b    '-------------------------------------------------------------'
+00005413= 0D 0A 00                1670                  dc.b    $0D,$0A,0 
+00005416                          1671  
+00005416                          1672  slashBreak_msg:                
+00005416= 2F 00                   1673                  dc.b    '/',0                 
+00005418                          1674                  
+00005418                          1675  displayWill_msg: 
+00005418                          1676  
+00005418= 0D 0A                   1677                  dc.b    $0D,$0A
+0000541A= 57 69 6C 6C 20 3A ...   1678                  dc.b    'Will : ',0
+00005422                          1679                
+00005422                          1680  displayFortitude_msg: 
+00005422                          1681  
+00005422= 0D 0A                   1682                  dc.b    $0D,$0A
+00005424= 46 6F 72 74 69 74 ...   1683                  dc.b    'Fortitude : ',0
+00005431                          1684                  
+00005431                          1685                  
+00005431                          1686  displayReflex_msg: 
+00005431                          1687  
+00005431= 0D 0A                   1688                  dc.b    $0D,$0A
+00005433= 52 65 66 6C 65 78 ...   1689                  dc.b    'Reflex : ',0
+0000543D                          1690  
+0000543D                          1691  displayIntuition_msg: 
+0000543D                          1692  
+0000543D= 0D 0A                   1693                  dc.b    $0D,$0A
+0000543F= 49 6E 74 75 69 74 ...   1694                  dc.b    'Intuition : ',0
+0000544C                          1695                  
+0000544C                          1696  displayHealth_msg: 
+0000544C                          1697  
+0000544C= 0D 0A                   1698                  dc.b    $0D,$0A
+0000544E= 48 65 61 6C 74 68 ...   1699                  dc.b    'Health : ',0 
+00005458                          1700                  
+00005458                          1701  displayTime_msg: 
+00005458                          1702  
+00005458= 0D 0A                   1703                  dc.b    $0D,$0A
+0000545A= 54 69 6D 65 20 3A ...   1704                  dc.b    'Time : ',0                
+00005462                          1705                  
+00005462                          1706  displayFuel_msg: 
+00005462                          1707  
+00005462= 0D 0A                   1708                  dc.b    $0D,$0A
+00005464= 46 75 65 6C 20 3A ...   1709                  dc.b    'Fuel : ',0               
+0000546C                          1710                  
+0000546C                          1711  
+0000546C= 00005000                1712  HEALTH_VALUE    dc.l    $5000
+00005470= 00004100                1713  WILL_VALUE      dc.l    $4100
+00005474= 00004200                1714  FORTITUDE_VALUE dc.l    $4200
+00005478= 00004300                1715  REFLEX_VALUE    dc.l    $4300
+0000547C= 00004400                1716  INTUITION_VALUE dc.l    $4400
+00005480= 00004500                1717  CREDIT_VALUE    dc.l    $4500
+00005484= 00004600                1718  RENOWN_VALUE    dc.l    $4600
+00005488= 00004700                1719  FUEL_VALUE_MAX  dc.l    $4700
+0000548C= 00004800                1720  FUEL_VALUE_CURRENT  dc.l    $4800
+00005490= 00004900                1721  LOCATION_VALUE  dc.l    $4900
+00005494= 00003800                1722  TIME_VALUE      dc.l    $3800
+00005498= 00003700                1723  EXPENSE_VALUE   dc.l    $3700
+0000549C= 00003900                1724  FIGHT_VALUE     dc.l    $3900
+000054A0                          1725  
+000054A0                          1726  ;Weapons Found
+000054A0= 00003000                1727  PISTOL_PRESENT  dc.l    $3000 
+000054A4= 00003100                1728  HE_PRESENT  dc.l    $3100    
+000054A8                          1729  
+000054A8                          1730  ;RECRUITED CREW
+000054A8= 00003500                1731  NOBODY          dc.l    $3500
+000054AC= 00003600                1732  KAYLE           dc.l    $3600
+000054B0                          1733  
+000054B0                          1734  
+000054B0                          1735  ;CREW ON THE EXCURSION
+000054B0= 00006000                1736  COMPANION_TRACKER       dc.l  $6000
+000054B4= 00006100                1737  COMPANION_A             dc.l  $6100
+000054B8= 00006200                1738  MISSION_TRACKER         dc.l  $6200
+000054BC= 00006300                1739  CLUE_ONE                dc.l  $6300
+000054C0= 00006400                1740  CLUE_TWO                dc.l  $6400
+000054C4= 00006500                1741  CLUE_THREE              dc.l  $6500
+000054C8= 00006600                1742  MISSION_VALUE           dc.l  $6600
+000054CC= 00006700                1743  ENEMY_HEALTH            dc.l  $6700
+000054D0= 00006800                1744  ENEMY_DAMAGE            dc.l  $6800
+000054D4= 00006900                1745  CREWBONUS_DAMAGE        dc.l  $6900
+000054D8= 00007000                1746  WEAPONBONUS_DAMAGE      dc.l  $7000
+000054DC= 00007100                1747  TOTAL_DAMAGE            dc.l  $7100
+000054E0                          1748  
+000054E0                          1749      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BROWSEITEMS         129A
+BROWSERENOWNZERO    12B0
+CAPTAINROOM         137A
+CAPTAINROOMINTRO_MSG  2B22
+CAPTAINSETUP        1BAE
+CAPTAIN_MSG         1D5D
+CASHDECREASEPISTOL  134A
+CLASSINTRO_MSG      1C99
+CLASSSELECTION      1B9A
+CLEAR_SCREEN        1C74
+CLUE_ONE            54BC
+CLUE_THREE          54C4
+CLUE_TWO            54C0
+COMBATOPTIONS_MSG   507B
+COMPANION_A         54B4
+COMPANION_TRACKER   54B0
+CREDIT_VALUE        5480
+CREWBONUS_DAMAGE    54D4
+CREWLIST            115C
+CRLF                1C96
+DISPLAYCREDITS_MSG  532C
+DISPLAYFORTITUDE_MSG  5422
+DISPLAYFUEL         149E
+DISPLAYFUEL_MSG     5462
+DISPLAYHEALTH_MSG   544C
+DISPLAYINTUITION_MSG  543D
+DISPLAYLOCATION     14D0
+DISPLAYREFLEX_MSG   5431
+DISPLAYSTATS        13F0
+DISPLAYTIME_MSG     5458
+DISPLAYWILL_MSG     5418
+EMPTYSHIP           110C
+ENDL                1C80
+ENEMY_DAMAGE        54D0
+ENEMY_HEALTH        54CC
+EXIT                0
+EXIT0_MSG           5315
+EXITBRANCH          109A
+EXPENSE_VALUE       5498
+FIGHTSYSTEM         1A08
+FIGHTSYSTEMATTACK   1A56
+FIGHTSYSTEMDEFEND   1AD4
+FIGHTSYSTEMENEMYATTACK  1A9E
+FIGHTSYSTEMHE       1B42
+FIGHTSYSTEMHE_PRES  1B34
+FIGHTSYSTEMHE_PRES_MSG  50CB
+FIGHTSYSTEMLOSS     1B70
+FIGHTSYSTEMSPECIAL  1B08
+FIGHTSYSTEMVICTORY  1B5E
+FIGHT_VALUE         549C
+FORTITUDE_VALUE     5474
+FUEL_VALUE_CURRENT  548C
+FUEL_VALUE_MAX      5488
+HEALTHCALCULATION   1C32
+HEALTH_VALUE        546C
+HE_PRESENT          54A4
+INTROGENERAL        109E
+INTROGENERAL_MSG    1E51
+INTUITION_VALUE     547C
+ITEMRENOWNZERO_MSG  29F5
+KAYLE               54AC
+KAYLECOFFEE         1248
+KAYLEHELP           122E
+KAYLEIDLE           10FC
+KAYLEIDLEHUB_MSG    227D
+KAYLEPRESENT        11A4
+KAYLESELECT         15E2
+KAYLESELECTED       15FE
+KAYLESHIPSTATUS     1216
+LINEBREAK_MSG       53D4
+LOCATION_VALUE      5490
+MIN_FUEL            64
+MISSION1BAR         1776
+MISSION1BARDESC_MSG  3634
+MISSION1BARINTUITIONOPTION_MSG  37E3
+MISSION1BARINTUITIONRESULT_MSG  3851
+MISSION1BARSEARCHRESULT_MSG  3AA8
+MISSION1BARSEARCH_MSG  3769
+MISSION1BARSPECIALINTUITION  17C0
+MISSION1BOMBERCOUNCIL  1950
+MISSION1BOMBERCOUNCIL_MSG  4AA6
+MISSION1BOMBEREX    1934
+MISSION1BOMBEREX_MSG  4844
+MISSION1BOMBERFIGHT  19B8
+MISSION1BOMBERFIGHTKAYLE  1994
+MISSION1BOMBERFIGHTKAYLE_MSG  4EE4
+MISSION1BOMBERHOUSE  18A2
+MISSION1BOMBERHOUSEDESC_MSG  40C6
+MISSION1BOMBERHOUSEOPTION  173A
+MISSION1BOMBERHOUSEOPTION_MSG  4059
+MISSION1BOMBERKAYLE  1986
+MISSION1BOMBERKAYLE_MSG  4E90
+MISSION1BOMBERPOLICE  1918
+MISSION1BOMBERPOLICE_MSG  4609
+MISSION1BRIEFING    153E
+MISSION1BRIEFING_MSG  2C0E
+MISSION1CONCLUSION_MSG  5183
+MISSION1CONLUSION   19DA
+MISSION1GAMEOVER_MSG  50E4
+MISSION1HUB         16BE
+MISSION1HUBOPTIONS_MSG  3207
+MISSION1HUB_MSG     30D6
+MISSION1INFOBROKER  1814
+MISSION1INFOBROKERDESC_MSG  3BAA
+MISSION1INFOBROKERNO  183C
+MISSION1INFOBROKERNORESULT_MSG  3E92
+MISSION1INFOBROKERYES  1852
+MISSION1INFOBROKERYESRESULT_MSG  3F85
+MISSION1INTRO       1694
+MISSION1INTRO_MSG   2E94
+MISSION1INTUITIONRESULT  17E4
+MISSION1POLICE      1748
+MISSION1POLICESTATIONDESC_MSG  33E6
+MISSION1POLICESTATIONRESULT_MSG  34F0
+MISSION1SEARCHRESULT  17CE
+MISSION1SETUP_MSG   2D3D
+MISSIONCHOICE       154C
+MISSIONCHOICEOPTIONS_MSG  2DE9
+MISSIONCONSOLEINTRO_MSG  2BA7
+MISSIONCREWSELECT_MSG  2DC1
+MISSIONGO           1644
+MISSIONKAYLE_MSG    2E2A
+MISSIONNOBODY_MSG   2E70
+MISSIONPREP         1590
+MISSIONSELECT       14EA
+MISSION_TRACKER     54B8
+MISSION_VALUE       54C8
+NOBODY              54A8
+NOBODYPRESENT       11B2
+NOBODYSELECT        15F0
+NOBODYSELECTED      1626
+NOTENOUGHCASH_MSG   5339
+OWNEDWEAPON_MSG     2AAC
+PACKAWAY_MSG        5386
+PISTOLPRESENT       12F2
+PISTOL_PRESENT      54A0
+PLANET1_MSG         53BD
+PRESSKCONTINUE_MSG  52F4
+PURCHASEPISTOL      131A
+REFLEX_VALUE        5478
+RENOWN_VALUE        5484
+RESETHEALTH         1C4E
+RESETMISSION1       1656
+RETIREMENT          13CC
+RETIREMENTMESSAGE   13BE
+RETIREMENTMESSAGE_MSG  5237
+RETIREMENT_MSG      5289
+SELECTACTIONSHIPHUB  111C
+SETUPSCREEN         1B82
+SHIPHUB             10DA
+SHIPHUBNOC_SELECTION_MSG  2239
+SHIPHUB_BASE_OPTIONS_MSG  22C7
+SHIPHUB_MSG         21A8
+SHIPINTROGENERAL_MSG  20F0
+SHOPMENU            1262
+SHOPMENUBASEMENU_MSG  2913
+SLASHBREAK_MSG      5416
+START               1000
+TALKTOCREW          1158
+TALKTOCREWKAYLE_MSG  2357
+TALKTOCREWNOBODY_MSG  2385
+TALKTOKAYLE         11C0
+TALKTOKAYLECOFFE_MSG  27E1
+TALKTOKAYLEHELP_MSG  263A
+TALKTOKAYLEOPTIONSBASE_MSG  2473
+TALKTOKAYLESHIPSTATUS_MSG  24F2
+TALKTOKAYLE_MSG     23B3
+TIME_VALUE          5494
+TOTAL_DAMAGE        54DC
+WEAPONBONUS_DAMAGE  54D8
+WILL_VALUE          5470
+_00000000           1178
+_00000001           1188
+_00000002           11FC
+_00000003           1206
+_00000004           1210
+_00000005           12AA
+_00000006           12E2
+_00000007           12EC
+_00000008           13A6
+_00000009           13DA
+_0000000A           14E8
+_0000000B           1516
+_0000000C           1568
+_0000000D           15AC
+_0000000E           15BC
+_0000000F           15D4
+_00000010           15DE
+_00000011           1622
+_00000012           1640
+_00000013           170E
+_00000014           17A4
+_00000015           1810
+_00000016           1892
+_00000017           196C
+_00000018           19B6
+_00000019           1A40
+_0000001A           1A4A
+_0000001B           1A54
+_0000001C           1AB4
+_0000001D           1AD0
+_0000001E           1B04
+_0000001F           1B18
+_00000020           1B5C
+_00000021           1B6E
+_00000022           1B80
